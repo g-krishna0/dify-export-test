@@ -1,0 +1,251 @@
+app:
+  description: Transforms Dify DSL files into clean flowcharts for instant documentation
+    and logic verification
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: DSL Flowchart Mapper_v2
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1777869507478-source-1777870530304-target
+      source: '1777869507478'
+      sourceHandle: source
+      target: '1777870530304'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: http-request
+      id: 1777868375007-source-1778033568270-target
+      source: '1777868375007'
+      sourceHandle: source
+      target: '1778033568270'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: 1778033568270-source-1777869507478-target
+      source: '1778033568270'
+      sourceHandle: source
+      target: '1777869507478'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: This node serves as the entry point where the DSL File (with .yml extension)
+          gets uploaded
+        selected: false
+        title: Input DSL File
+        type: start
+        variables:
+        - allowed_file_extensions:
+          - .yml
+          allowed_file_types:
+          - custom
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: DSL_File
+          max_length: 48
+          options: []
+          required: true
+          type: file
+          variable: DSL_File
+      height: 149
+      id: '1777868375007'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: d60f11dc-0e4e-49a7-a85b-eb68d3de1060
+          role: system
+          text: "Role: You are a Structural Data Analyst. \nTask: Analyze the provided\
+            \ DSL workflow file and extract a comprehensive inventory of every unique\
+            \ Node present.\nInstructions:\nIgnore all edges, connections, and logic\
+            \ for now.\nFor every node found, extract the ID and the Title/Name. \n\
+            Output the result as a simple, clean list.\nOutput Format: [ID] : [Node\
+            \ Title]\nConstraint: Do not summarize. If there are 50 nodes, list all\
+            \ 50. Do not include any conversational text - all the nodes across all\
+            \ the flows must be displayed\n\nDSL File: {{#1778033568270.body#}}"
+        - id: b4bba965-bc3b-46d2-80ac-aeaafa870d34
+          role: user
+          text: DSL File to be analysed :{{#1778033568270.body#}}
+        - id: f9fd27a4-f094-48fd-a4a3-59798456e079
+          role: assistant
+          text: ''
+        selected: false
+        structured_output_enabled: false
+        title: LLM - Extractor
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - '1777869471082'
+            - files
+          enabled: false
+      height: 89
+      id: '1777869507478'
+      position:
+        x: 924.9489114427136
+        y: 282
+      positionAbsolute:
+        x: 924.9489114427136
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1777869507478'
+          - text
+          value_type: string
+          variable: text_1
+        selected: false
+        title: End
+        type: end
+      height: 90
+      id: '1777870530304'
+      position:
+        x: 1391.975856990678
+        y: 282
+      positionAbsolute:
+        x: 1391.975856990678
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: ''
+        method: get
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: HTTP Request
+        type: http-request
+        url: '{{#1777868375007.DSL_File.url#}}'
+        variables: []
+      height: 125
+      id: '1778033568270'
+      position:
+        x: 524.9368399380527
+        y: 282
+      positionAbsolute:
+        x: 524.9368399380527
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -22.071140345616698
+      y: 102.369250740995
+      zoom: 0.34868721438746747
