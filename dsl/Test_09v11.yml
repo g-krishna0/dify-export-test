@@ -1829,7 +1829,7 @@ workflow:
           \                 current_status = \"File Uploaded\"\n\n               \
           \ # ---------------------------------------------\n                # CASE\
           \ 5 : PENDING\n                # ---------------------------------------------\n\
-          \n                else:\n\n                    current_status = \"Pending\"\
+          \n                else:\n\n                    current_status = \"Error\"\
           \n\n                # =================================================\n\
           \                # FULLY RESOLVED HIDE RULE\n                # =================================================\n\
           \n                is_resolved = (\n                    is_uploaded(found_val)\n\
