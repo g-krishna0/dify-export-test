@@ -35,13 +35,6 @@ workflow:
       - local_file
       - remote_url
       enabled: false
-      fileUploadConfig:
-        audio_file_size_limit: 50
-        batch_count_limit: 5
-        file_size_limit: 50
-        image_file_size_limit: 10
-        video_file_size_limit: 100
-        workflow_file_upload_limit: 10
       image:
         enabled: false
         number_limits: 3
@@ -117,23 +110,23 @@ workflow:
       type: custom
     - data:
         isInLoop: false
-        sourceType: start
-        targetType: code
-      id: node-start-source-node-file-classifier-target
-      source: node-start
-      sourceHandle: source
-      target: node-file-classifier
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data:
-        isInLoop: false
         sourceType: code
         targetType: llm
       id: node-file-classifier-source-node-vision-extractor-target
       source: node-file-classifier
       sourceHandle: source
       target: node-vision-extractor
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: node-start-source-node-file-classifier-target
+      source: node-start
+      sourceHandle: source
+      target: node-file-classifier
       targetHandle: target
       type: custom
       zIndex: 0
@@ -157,17 +150,17 @@ workflow:
           required: true
           type: file-list
           variable: input_file
-      height: 150
+      height: 148
       id: node-start
       position:
-        x: 30
-        y: 275
+        x: 569.7005147069693
+        y: 421.1352865004432
       positionAbsolute:
-        x: 30
-        y: 275
+        x: 569.7005147069693
+        y: 421.1352865004432
       selected: false
       type: custom
-      width: 244
+      width: 243
     - data:
         code: "import os\n\ndef get_file_name(f) -> str:\n    for attr in (\"filename\"\
           , \"name\"):\n        try:\n            val = getattr(f, attr, None)\n \
@@ -230,17 +223,17 @@ workflow:
           - input_file
           value_type: array[file]
           variable: input_files
-      height: 98
+      height: 96
       id: node-file-classifier
       position:
-        x: 334
-        y: 275
+        x: 890.4543562782271
+        y: 354.8398831408275
       positionAbsolute:
-        x: 334
-        y: 275
+        x: 890.4543562782271
+        y: 354.8398831408275
       selected: false
       type: custom
-      width: 244
+      width: 243
     - data:
         context:
           enabled: false
@@ -255,38 +248,145 @@ workflow:
         prompt_template:
         - id: sys-vision
           role: system
-          text: "You are a precise chart and graph extraction engine.\n\n════════\
-            \ RULES ════════\n\nRULE 1 — EXTRACT VISUALLY DERIVABLE VALUES\nExtract:\n\
-            - explicitly printed values\n- values visually derivable from axes, gridlines,\
-            \ bar heights,\n  line positions, pie percentages, scatter locations,\
-            \ and legends.\n\nRULE 2 — APPROXIMATE WHEN NECESSARY\nIf a value is estimated\
-            \ visually from chart geometry rather than\nexplicitly printed, output\
-            \ the numeric value and add:\n\n\"_flagged_value\": true\n\nExample:\n\
-            {\n  \"label\": \"Q1\",\n  \"series\": \"North\",\n  \"value\": 12000,\n\
-            \  \"_flagged_value\": true\n}\n\nRULE 3 — ONLY USE IMAGE CONTENT\nDo\
-            \ not use outside knowledge.\nOnly use what can reasonably be interpreted\
-            \ from the image.\n\nRULE 4 — UNREADABLE VALUES\nIf a value truly cannot\
-            \ be estimated because the chart is blurry,\ncut off, or ambiguous, use:\n\
-            \n\"value\": \"UNREADABLE\"\n\nRULE 5 — PIE CHARTS\nIf percentages are\
-            \ visually inferable from slice labels or geometry,\nextract them.\n\n\
-            RULE 6 — BAR / LINE / AREA CHARTS\nEstimate values using:\n- axis ticks\n\
-            - gridlines\n- relative bar/point position\n\nRULE 7 — EMPTY CASE\nIf\
-            \ no charts exist:\n{\n  \"graphs_found\": 0,\n  \"graphs\": [],\n  \"\
-            no_graph_reason\": \"No chart or graph detected.\"\n}\n\nRULE 8 — OUTPUT\
-            \ ONLY JSON\nNo markdown.\nNo prose.\nNo explanations.\n\n════════ OUTPUT\
-            \ FORMAT ════════\n\n{\n  \"graphs_found\": <integer>,\n  \"graphs\":\
-            \ [\n    {\n      \"graph_index\": 1,\n      \"graph_type\": \"\",\n \
-            \     \"title\": \"\",\n      \"x_axis\": {\n        \"label\": \"\",\n\
-            \        \"unit\": \"\",\n        \"ticks\": []\n      },\n      \"y_axis\"\
-            : {\n        \"label\": \"\",\n        \"unit\": \"\",\n        \"ticks\"\
-            : []\n      },\n      \"legend\": [],\n      \"data\": [],\n      \"source_annotation\"\
-            : \"\",\n      \"extraction_notes\": \"\"\n    }\n  ]\n}"
+          text: 'ROLE: Chart extraction engine. Output raw JSON only.
+
+
+            STEP 0 — MANDATORY PRE-SCAN (do this before writing any JSON):
+
+            1. Scan EVERY page of the document from first to last.
+
+            2. Count and list all charts/graphs found. Note page number for each.
+
+            3. Set graphs_found = total count.
+
+            4. Extract ALL of them in order. Do NOT stop early. Do NOT skip any.
+
+            5. If you cannot fit all in one pass, still output ALL graphs — truncate
+            data points before truncating graphs.
+
+
+            CONTRACT (never break):
+
+            - Only output values seen in image. No guessing, no memory, no inference.
+
+            - Each data point read in isolation. Never borrow from neighbour.
+
+            - Confirm x-axis label before writing any value.
+
+            - No pattern extrapolation.
+
+            - Absent point = "MISSING". Present but unreadable = "UNCLEAR". Never
+            use 0 or dash as substitute.
+
+
+            MARKERS:
+
+            - UNCLEAR: point exists but cannot be read
+
+            - MISSING: no point plotted at this position
+
+
+            VALUE RULES:
+
+            - Printed label → use as-is
+
+            - Visual estimate (no label) → add "_flagged_value": true
+
+            - Cannot estimate → "UNCLEAR"
+
+
+            PIE: extract % from labels/geometry. Obscured = UNCLEAR. Absent = MISSING.
+
+
+            BAR/LINE/AREA: read each point against axis independently.
+
+
+            STACKED BAR (per bar):
+
+            1. Calibrate Y-axis ticks → pixels-per-unit
+
+            2. Confirm x-axis label
+
+            3. Per segment: read bottom edge (start_value), top edge (end_value),
+            compute segment_value = end-start
+
+            4. Unreadable edge → all three fields = "UNCLEAR"
+
+            5. Absent segment → all fields = "MISSING"
+
+            NEVER shift segments. NEVER subtract from total.
+
+
+            WATERFALL — TWO FAILURE MODES:
+
+            F1 LABEL DRIFT: Floating labels appear closer to next bar. Ignore proximity.
+            Drop vertical line from label to find owning bar.
+
+            F2 SIGN FROM POSITION: Wrong. Use bar COLOR from legend. Red/grey=decrease(negative).
+            Green/blue=increase(positive). Printed label gives MAGNITUDE only — sign
+            comes from color.
+
+
+            WATERFALL STEPS (per bar):
+
+            A. List Y-axis ticks, compute scale
+
+            B. List x-axis labels L→R. For each floating label drop vertical line
+            → assign to bar below.
+
+            C. Read bar color → bar_type → sign
+
+            D. Magnitude from aligned label. NEVER calculate residual.
+
+            E. start_value=previous running_total, end_value=start+bar_value
+
+            F. running_total[N]=running_total[N-1]+bar_value[N]
+
+            G. Ambiguous color+no axis → all UNCLEAR. Absent → all MISSING.
+
+
+            WATERFALL EXAMPLE (correct):
+
+            {"label":"China","bar_type":"decrease","start_value":380,"end_value":373,"bar_value":-7,"running_total":373}
+
+
+            NO CHARTS:
+
+            {"graphs_found":0,"graphs":[],"no_graph_reason":"No chart or graph detected."}
+
+
+            PRE-OUTPUT CHECK:
+
+            - graphs_found matches actual count of graphs in output array?
+
+            - Every page scanned? No graph skipped?
+
+            - Every value anchored to visible element?
+
+            - No neighbour borrowing?
+
+            - UNCLEAR only where point exists but unreadable?
+
+            - MISSING only where no point exists?
+
+            - No invented values?
+
+            Fail any check → fix before output.
+
+
+            OUTPUT FORMAT (JSON only, no markdown, no prose):
+
+            {"value_marker_legend":{"UNCLEAR":"Exists but unreadable","MISSING":"Not
+            plotted"},"graphs_found":<int>,"graphs":[{"graph_index":1,"graph_type":"","title":"","page":<int>,"x_axis":{"label":"","unit":"","ticks":[]},"y_axis":{"label":"","unit":"","ticks":[]},"legend":[],"data":[],"source_annotation":"","extraction_notes":""}]}'
         - id: user-vision
           role: user
           text: 'File name(s): {{#node-file-classifier.file_names#}}
 
 
-            Extract all charts and graphs from the image(s) above.
+            IMPORTANT: Scan every page. Extract EVERY chart and graph present — do
+            not stop until all pages are processed. Set graphs_found to the total
+            count before writing any graph entry.
+
 
             Follow all RULES exactly. Return only JSON.
 
@@ -306,17 +406,17 @@ workflow:
             - node-start
             - input_file
           enabled: true
-      height: 134
+      height: 132
       id: node-vision-extractor
       position:
-        x: 638
-        y: 275
+        x: 1212.4366655468152
+        y: 326.0328050670394
       positionAbsolute:
-        x: 638
-        y: 275
-      selected: false
+        x: 1212.4366655468152
+        y: 326.0328050670394
+      selected: true
       type: custom
-      width: 244
+      width: 243
     - data:
         context:
           enabled: true
@@ -327,24 +427,68 @@ workflow:
         model:
           completion_params:
             temperature: 0
-            top_p: 0
           mode: chat
           name: gemini-2.5-flash
           provider: langgenius/gemini/google
         prompt_template:
         - id: sys-checker
           role: system
-          text: "You are a strict data auditor for chart extraction results.\n\nCHECKS:\n\
-            1. Flag suspiciously round values with \"_flagged\": true sibling.\n2.\
-            \ Pie/donut: if % values deviate from 100 by >2, add \"sum_warning\".\n\
-            3. Data labels not in x_axis.ticks: add \"axis_mismatch_warning\".\n4.\
-            \ Normalise graph_type to canonical names:\n   Bar Chart, Grouped Bar\
-            \ Chart, Stacked Bar Chart, Column Chart,\n   Histogram, Line Chart, Area\
-            \ Chart, Pie Chart, Donut Chart,\n   Scatter Plot, Bubble Chart, Heatmap,\
-            \ Treemap, Waterfall Chart,\n   Funnel Chart, Sankey Diagram, Radar Chart,\
-            \ Box Plot,\n   Candlestick Chart, Gantt Chart, Sunburst Chart, Other.\n\
-            5. graphs_found = 0: pass through unchanged.\n\nAdd top-level \"audit_passed\"\
-            : true | false.\nReturn corrected/annotated JSON only. No prose.\n"
+          text: 'ROLE: Chart JSON auditor. Flag errors. Never fix or invent data.
+
+
+            CONTRACT:
+
+            - DO NOT change numbers to balance math. Flag discrepancy instead.
+
+            - DO NOT add "Other"/"Adjustment"/"Residual" entries not in source.
+
+            - Report values as-is even if chart has mathematical error.
+
+
+            GENERAL CHECKS:
+
+            1. Flag round values (100/1000/5000) not matching axis ticks → suspicious_round_values
+
+            2. Pie/Donut % total >102 or <98 → sum_warning
+
+            3. Labels absent from x_axis.ticks → axis_mismatch
+
+            4. Normalize graph_type: Bar Chart|Grouped Bar Chart|Stacked Bar Chart|Column
+            Chart|Line Chart|Area Chart|Pie Chart|Donut Chart|Waterfall Chart|Scatter
+            Plot|Other
+
+
+            WATERFALL AUDITS (never change data, only flag):
+
+            a. running_total[N] != start_value[N+1] → waterfall_continuity_warning
+
+            b. start_value+bar_value != end_value → arithmetic_logic_warning: "mismatch
+            at [label]"
+
+            c. decrease bar has positive bar_value OR increase bar has negative →
+            sign_mismatch_warning
+
+            d. Final total bar != sum of parts → total_discrepancy_warning
+
+            e. abs(bar_value) != printed label (diff >1) → magnitude_sync_warning
+
+            f. Entry exists only to balance math (value=1 or -1) → force_balance_warning
+
+
+            STACKED BAR AUDITS:
+
+            g. segment start != previous segment end → stack_gap_warning
+
+            h. sum(segment_values) != total bar height → segment_sum_warning
+
+
+            OUTPUT:
+
+            - Top-level "audit_passed": true/false
+
+            - If false: "audit_failure_reasons": [list]
+
+            - Return ONLY audited JSON. No prose.'
         - id: user-checker
           role: user
           text: 'Audit this vision-extracted graph JSON:
@@ -363,17 +507,17 @@ workflow:
           variable: vision_json
         vision:
           enabled: false
-      height: 134
+      height: 132
       id: node-fact-checker
       position:
-        x: 942
-        y: 275
+        x: 1509.6845967095478
+        y: 318.2857142857143
       positionAbsolute:
-        x: 942
-        y: 275
+        x: 1509.6845967095478
+        y: 318.2857142857143
       selected: false
       type: custom
-      width: 244
+      width: 243
     - data:
         context:
           enabled: true
@@ -390,27 +534,31 @@ workflow:
         prompt_template:
         - id: sys-formatter
           role: system
-          text: "Convert audited graph JSON {{#context#}}into markdown tables.\n\n\
-            RULES:\n1. Use charts array only. Ignore graphs_found if inconsistent.\n\
-            2. If charts is missing or empty → output:\n   > ℹ No charts detected.\n\
-            \n3. Heading per graph:\n   ### Graph {index}: {title} ({type})\n\n4.\
-            \ Layout by type:\n   - Bar/Column/Line/Area:\n     | {x_label} | Value\
-            \ |\n   - Pie/Donut:\n     | Category | Value | % |\n   - Scatter/Bubble:\n\
-            \     | {x_label} | {y_label} | Label |\n   - Heatmap: rows=y, cols=x\n\
-            \   - Other: best fit\n\n5. Any UNREADABLE value → \"—\"\n   Add footnote\
-            \ once at end:\n   > ⚠ Some values shown as —\n\n6. Any value with _flagged\
-            \ or _flagged_value true → append \"†\"\n   Add footnote once at end:\n\
-            \   > † May be approximate.\n\n7. Warnings (axis_mismatch_warning, sum_warning,\
-            \ etc.) must appear as blockquote below the table.\n\n8. source_annotation\
-            \ if present:\n   > Source: {text}\n\n9. Numbers: use commas for thousands.\n\
-            10. Give output only for whatever graph is found and the graph number.\n\
-            Return ONLY markdown."
+          text: "ROLE: Convert audited chart JSON into markdown tables. Return ONLY\
+            \ markdown.\n\nRULES:\n1. Use graphs array. Ignore graphs_found if inconsistent.\n\
+            2. Empty/missing graphs → output: > ℹ No charts detected.\n3. Heading:\
+            \ ### {title} ({graph_type})\n\n4. Table layout by type:\n- Bar/Column/Line/Area:\
+            \ | {x_label} | Value |\n- Pie/Donut: | Category | Value | % |\n- Scatter/Bubble:\
+            \ | {x_label} | {y_label} | Label |\n- Heatmap: rows=y, cols=x\n- Waterfall:\
+            \ | Label | Bar Type | Start | End | Value | Running Total |\n  Bar Type\
+            \ values: increase/decrease/total/subtotal/UNCLEAR\n  Footer row: | **Final\
+            \ Total** | total | — | {last_running_total} | — | {last_running_total}\
+            \ |\n- Other: best fit\n\n5. Cell values:\n- MISSING → blank cell (no\
+            \ dash, no zero)\n- UNCLEAR → exactly \"-\"\n- _flagged_value true → append\
+            \ \"†\" (e.g. 1,234†)\n- Never use \"—\", \"N/A\", \"?\", \"unknown\"\n\
+            - Never invent missing values\nLegend once at end: > *Blank = not present;\
+            \ - = present but unclear*\n\n6. _flagged values → append \"†\"\nFootnote\
+            \ once at end: > † May be approximate.\n\n7. Audit warnings → blockquote\
+            \ below affected table:\n> ⚠ [warning]\nFor value_shift_warning: > ⚠ DATA\
+            \ QUALITY ALERT: Values may be shifted. Verify against source.\n\n8. source_annotation\
+            \ → > Source: {text}\n9. Numbers: use comma thousands separator.\n10.\
+            \ No fabrication. If value not in JSON, leave blank."
         - id: user-formatter
           role: user
           text: 'Format this audited JSON into markdown tables:
 
 
-            {{#node-vision-extractor.text#}}
+            {{#node-fact-checker.text#}}
 
             '
         selected: false
@@ -423,17 +571,17 @@ workflow:
           variable: audited_json
         vision:
           enabled: false
-      height: 134
+      height: 132
       id: node-table-formatter
       position:
-        x: 1246
-        y: 275
+        x: 1807.2033900223776
+        y: 318.2857142857143
       positionAbsolute:
-        x: 1246
-        y: 275
+        x: 1807.2033900223776
+        y: 318.2857142857143
       selected: false
       type: custom
-      width: 244
+      width: 243
     - data:
         context:
           enabled: true
@@ -443,23 +591,27 @@ workflow:
         desc: Write a grounded plain-English summary per graph.
         model:
           completion_params:
-            temperature: 0.1
+            temperature: 0
           mode: chat
           name: gemini-2.5-flash
           provider: langgenius/gemini/google
         prompt_template:
         - id: sys-summary
           role: system
-          text: "Write plain-English summaries of charts from verified data only.{{#context#}}\n\
-            \nRULES:\nA. Cite only values present in the audited JSON. No rounding.\n\
-            B. UNREADABLE values: state \"The value for [label] could not be read.\"\
-            \nC. No causal claims unless the chart annotates a reason.\nD. Flagged\
-            \ values: write \"approximately {value}\".\nE. graphs_found=0: write \"\
-            No charts were detected.\"\n\nFORMAT PER GRAPH:\n**Graph {index} — {title}\
-            \ ({type})**\n{2-4 sentences: highest, lowest, pattern, unreadable notes}\n\
-            Confidence: High | Medium | Low\n  High = all readable, no warnings\n\
-            \  Medium = some flagged or approximate\n  Low = multiple UNREADABLE or\
-            \ audit warnings\n"
+          text: "ROLE: Write plain-English chart summaries from verified data only.\n\
+            \nRULES:\nA. Only cite values present in audited JSON. No rounding unless\
+            \ _flagged.\nB. UNCLEAR → \"The value for [label] could not be read.\"\
+            \nC. MISSING → \"No data was plotted for [label].\"\nD. No causal claims\
+            \ unless chart annotates reason.\nE. _flagged → \"approximately {value}\"\
+            \nF. graphs_found=0 → \"No charts were detected.\"\nG. audit_passed=false\
+            \ → add: ⚠ Caution: Data may contain extraction errors. Verify against\
+            \ source image.\nH. value_shift_warning or segment_shift_warning → add:\
+            \ ⚠ Data Quality Note: Values may be misaligned with labels.\nI. Never\
+            \ invent, round, or extrapolate.\n\nFORMAT PER GRAPH:\n**{title} ({graph_type})**\n\
+            {2-4 sentences: highest, lowest, pattern, unreadable notes, warnings}\n\
+            Confidence: High|Medium|Low\n  High=all readable+audit_passed+no warnings\n\
+            \  Medium=some flagged/approx or minor warnings\n  Low=multiple UNCLEAR+audit_passed\
+            \ false+shift warnings"
         - id: user-summary
           role: user
           text: 'Audited JSON:
@@ -489,17 +641,17 @@ workflow:
           variable: formatted_tables
         vision:
           enabled: false
-      height: 134
+      height: 132
       id: node-summary-writer
       position:
-        x: 1550
-        y: 275
+        x: 2093.5063717060207
+        y: 318.2857142857143
       positionAbsolute:
-        x: 1550
-        y: 275
+        x: 2093.5063717060207
+        y: 318.2857142857143
       selected: false
       type: custom
-      width: 244
+      width: 243
     - data:
         desc: Merge tables and summary into the final structured report.
         selected: false
@@ -532,11 +684,11 @@ workflow:
 
           *All values are extracted directly from the uploaded file.
 
-          Values shown as — could not be read from the image.
+          Blank cells = value not present in chart.
 
-          Values marked with † may be approximate.*
+          Values marked with - could not be read from the image.
 
-          '
+          Values marked with † may be approximate.* '
         title: Output template
         type: template-transform
         variables:
@@ -552,17 +704,17 @@ workflow:
           - node-summary-writer
           - text
           variable: summary
-      height: 98
+      height: 96
       id: node-output-template
       position:
-        x: 1854
-        y: 275
+        x: 2377.3774687681657
+        y: 349.2740774110148
       positionAbsolute:
-        x: 1854
-        y: 275
+        x: 2377.3774687681657
+        y: 349.2740774110148
       selected: false
       type: custom
-      width: 244
+      width: 243
     - data:
         desc: Workflow end. Returns the verified graph extraction report.
         outputs:
@@ -575,18 +727,677 @@ workflow:
         selected: false
         title: End
         type: end
-      height: 134
+      height: 133
       id: node-end
       position:
-        x: 2158
-        y: 275
+        x: 2699.8034449702045
+        y: 335.7166685436958
       positionAbsolute:
-        x: 2158
-        y: 275
+        x: 2699.8034449702045
+        y: 335.7166685436958
       selected: false
       type: custom
-      width: 244
+      width: 243
+    - data:
+        author: 'Anshika '
+        desc: ''
+        height: 88
+        selected: false
+        showAuthor: true
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"You
+          are a precise chart and graph extraction engine.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"════════
+          ABSOLUTE ANTI-HALLUCINATION CONTRACT ════════","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"BEFORE
+          extracting ANY value, swear to these rules:","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-1]
+          ZERO INVENTION: You may ONLY output values that you can directly see or
+          mathematically derive from what is visible in the image. You must NEVER
+          invent, guess, recall from memory, or infer a value that is not visually
+          anchored in the chart.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-2]
+          NO NEIGHBOUR BORROWING: You must NEVER copy, borrow, shift, or inherit a
+          value from a neighbouring bar, adjacent data point, previous series entry,
+          or similar-looking element. Every single data point is read in isolation
+          from its own position.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-3]
+          LABEL-VALUE LOCKING: Before writing any data entry, explicitly confirm:
+          \"Which x-axis label does this bar/point sit directly above (or next to)?\"
+          Only assign the value to that confirmed label. If you cannot confidently
+          determine the owning label, mark the value \"UNCLEAR\" — do NOT assign it
+          to the nearest guess.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-4]
+          NO PATTERN EXTRAPOLATION: Do not assume a value because it \"fits a pattern\"
+          or \"continues a trend\". Each point is read independently.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-5]
+          MISSING ≠ ZERO: A data point that is absent from the chart is NOT zero unless
+          the chart explicitly plots zero. Use \"MISSING\" for absent points.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-6]
+          ONLY IMAGE CONTENT: Do not use any outside knowledge, training data, or
+          domain expectations about what values \"should\" be.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"════════
+          RULES ════════","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          1 — EXTRACT VISUALLY DERIVABLE VALUES","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Extract:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          explicitly printed values (data labels on the chart)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          values visually derivable from axes, gridlines, bar heights, line positions,
+          pie percentages, scatter locations, and legends.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          neither is possible, use UNCLEAR or MISSING as appropriate.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          2 — APPROXIMATE WHEN NECESSARY","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          a value is estimated visually from chart geometry (no printed label), output
+          the numeric estimate and add:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"\"_flagged_value\":
+          true","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          you cannot make a reliable estimate, use \"UNCLEAR\" instead of guessing.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          3 — ONLY USE IMAGE CONTENT","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Do
+          not use outside knowledge. Only use what can reasonably be interpreted from
+          the image.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          4 — UNCLEAR vs MISSING VALUES — STRICT DISTINCTION","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Use
+          exactly two markers:","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"|
+          Situation                                                                 |
+          Marker    | When to use                                           |","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"|---------------------------------------------------------------------------|-----------|-------------------------------------------------------|","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"|
+          Value exists in chart but cannot be read (blurry, cut off, overlapping)  |
+          \"UNCLEAR\" | Bar/point is present but its value cannot be measured |","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"|
+          Value is simply absent — no bar, point, or slice plotted                  |
+          \"MISSING\" | No data exists at this position in the chart          |","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"NEVER
+          use \"UNCLEAR\" for something that is simply absent.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"NEVER
+          use \"MISSING\" for something that is present but illegible.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"NEVER
+          use \"0\", \"—\", or any other placeholder instead of these two markers.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Include
+          this fixed legend once at the top of every JSON output:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"\"value_marker_legend\":
+          {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"UNCLEAR\":
+          \"Data point exists in the chart but could not be reliably read from the
+          image.\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"MISSING\":
+          \"No data point exists at this position in the chart.\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          5 — PIE CHARTS","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          percentages are visually inferable from slice labels or geometry, extract
+          them.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          a slice label is obscured or merged with another, mark it as \"UNCLEAR\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          a slice has no label at all, mark it as \"MISSING\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          6 — BAR / LINE / AREA CHARTS","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Estimate
+          values using axis ticks and gridlines. Each bar or point must be evaluated
+          against the axis independently. Do NOT assume a value based on a pattern
+          or neighboring value.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          7 — STACKED BAR CHARTS — STRICT INDEPENDENT SEGMENT READING","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP-BY-STEP
+          EXTRACTION PROCEDURE (follow for every bar):","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          A — AXIS CALIBRATION: Read all Y-axis tick labels and their pixel positions.
+          Compute pixels-per-unit scale.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          B — LABEL CONFIRMATION: Identify the exact x-axis label this bar belongs
+          to. Write it down before reading any values. Do NOT proceed until the label
+          is confirmed.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          C — SEGMENT ISOLATION: For each segment in this bar:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  1.
+          Find the segment''s bottom pixel edge on the Y-axis scale → this is start_value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  2.
+          Find the segment''s top pixel edge on the Y-axis scale → this is end_value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  3.
+          Compute segment_value = end_value - start_value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  4.
+          These three reads are INDEPENDENT — do not carry any number from another
+          segment or bar.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          D — UNCLEAR HANDLING: If any edge cannot be reliably placed on the Y-axis
+          scale, mark start_value, end_value, AND segment_value all as \"UNCLEAR\".
+          Do NOT substitute with a value from an adjacent segment.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          E — MISSING HANDLING: If a segment does not exist in this bar (not plotted),
+          mark all fields as \"MISSING\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"CRITICAL
+          SHIFT-ERROR PREVENTION:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER shift a segment''s value one position up or down in the stack.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER assign one segment''s value to a different segment just because they
+          look similar in size.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER derive a segment''s value by subtracting other segments from the total
+          — always read from the axis directly.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Example
+          of correct stacked bar extraction:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"label\":
+          \"Q2\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"series\":
+          \"Segment B\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"start_value\":
+          40,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"end_value\":
+          70,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"segment_value\":
+          30","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          start or end is not readable:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"label\":
+          \"Q2\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"series\":
+          \"Segment B\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"start_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"end_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"segment_value\":
+          \"UNCLEAR\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          8 — WATERFALL CHARTS — STRICT AXIS-BASED READING WITH LABEL LOCKING AND
+          COLOR-BASED SIGN DETECTION","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"WATERFALL
+          CHARTS HAVE TWO COMMON EXTRACTION FAILURE MODES — READ THIS FIRST:","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"FAILURE
+          MODE 1 — FLOATING DATA LABEL MISASSIGNMENT:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Waterfall
+          charts often print a small data label (e.g. \"7\", \"17\", \"22\") BETWEEN
+          or ABOVE bars.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"These
+          labels float in space and visually appear closer to the NEXT bar than the
+          one they belong to.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"THE
+          LABEL BELONGS TO THE BAR DIRECTLY BELOW IT OR CONNECTED TO IT — NOT the
+          bar to its right.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Do
+          NOT assign a floating label to a bar just because it appears spatially closer
+          to that bar.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"The
+          owning bar is determined by vertical alignment — trace the label straight
+          DOWN to find its bar.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"FAILURE
+          MODE 2 — SIGN DETERMINED FROM POSITION ALONE (WRONG):","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Do
+          NOT determine increase/decrease purely from whether a bar is positioned
+          high or low on the chart.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Waterfall
+          bars float — a bar high on the chart can still be a DECREASE.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Instead,
+          ALWAYS determine bar_type (and therefore the sign of bar_value) from:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  PRIMARY:
+          Bar fill color or pattern as defined in the chart legend.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    -
+          If the legend maps red → decrease and grey → decrease, those bars have NEGATIVE
+          bar_values.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    -
+          If the legend maps green/blue → increase, those bars have POSITIVE bar_values.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  SECONDARY
+          (if no legend): Whether the bar''s top edge is HIGHER than its bottom edge
+          starting from the previous running total:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    -
+          If the bar hangs DOWN from the previous running total → decrease (negative
+          bar_value).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    -
+          If the bar rises UP from the previous running total → increase (positive
+          bar_value).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"NEVER
+          read a printed data label (e.g. \"7\") as positive just because it has no
+          minus sign printed.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"The
+          SIGN comes from bar color/direction — the printed label gives only the MAGNITUDE.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"So
+          a bar labeled \"7\" that is colored red (decrease) has bar_value = -7, not
+          +7.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP-BY-STEP
+          EXTRACTION PROCEDURE (follow for every bar in order):","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          A — AXIS CALIBRATION:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  List
+          every visible Y-axis tick and its printed value. Compute the pixel-per-unit
+          scale.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  If
+          no Y-axis is visible, note this in extraction_notes and rely on printed
+          data labels for magnitude only.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          B — LABEL LOCKING (do this FIRST, before reading any value):","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  1.
+          List all x-axis labels left to right: [label_1, label_2, label_3, ...]","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  2.
+          List all visible bars left to right in the same order.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  3.
+          Pair them: bar_1 → label_1, bar_2 → label_2, etc.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  4.
+          For any floating data label near a bar: trace it VERTICALLY DOWNWARD to
+          find which bar it sits above. Assign it to THAT bar.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  5.
+          Do NOT shift: if label_N''s data label appears slightly to the right, it
+          still belongs to bar_N.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  6.
+          If pairing is ambiguous, mark that bar''s fields as \"UNCLEAR\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          C — COLOR-BASED BAR TYPE AND SIGN:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  1.
+          Identify the chart''s color legend (e.g. red = decrease, green = increase,
+          grey = neutral/total).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  2.
+          For each bar, read its fill color, then assign bar_type from the legend:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"     -
+          decrease → bar_value will be NEGATIVE","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"     -
+          increase → bar_value will be POSITIVE","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"     -
+          total / subtotal → bar_value equals the full cumulative end_value","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  3.
+          If no legend exists, infer from bar direction (hanging down = decrease,
+          rising up = increase).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  4.
+          Record bar_type: \"increase\", \"decrease\", \"total\", \"subtotal\", or
+          \"UNCLEAR\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          D — MAGNITUDE READING:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Option
+          A (printed data label visible): Use the printed number as the MAGNITUDE.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    Then
+          apply the sign from Step C: bar_value = magnitude × (−1 if decrease, +1
+          if increase).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Option
+          B (no printed label): Measure bar height from Y-axis scale.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    start_value
+          = lower edge mapped to Y-axis. end_value = upper edge mapped to Y-axis.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    bar_value
+          = end_value − start_value (sign already encoded by direction).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  NEVER
+          apply the sign from whether the number looks positive or negative visually.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  NEVER
+          assume a printed unsigned number (e.g. \"7\") is positive — sign comes from
+          Step C.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          E — START AND END VALUES:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  start_value
+          = running_total of the previous bar (i.e. where this bar begins on the Y-axis).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  end_value
+          = start_value + bar_value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  For
+          total/subtotal bars: start_value = 0 (or baseline), end_value = running_total
+          at that point.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          F — RUNNING TOTAL:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  running_total[N]
+          = running_total[N−1] + bar_value[N].","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  First
+          bar (total/opening): running_total = end_value.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          G — UNCLEAR/MISSING:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  If
+          bar color is ambiguous AND no axis reading is possible → ALL fields \"UNCLEAR\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  If
+          bar is absent from chart → ALL fields \"MISSING\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"CRITICAL
+          SHIFT-ERROR PREVENTION:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER carry one bar''s end_value as the next bar''s printed data label value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER assign a floating label to the bar it is spatially nearest to — trace
+          vertically to the owning bar.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER assume a label without a minus sign is positive — use bar color for
+          sign.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          If you find yourself writing the same value for two consecutive bars — STOP
+          and re-read both.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Real-world
+          example (matches a known extraction failure):","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Chart
+          shows: Total(Oct)=383, then bars labeled 2, 1, 0, 7, 17, 22, 42, Total(Nov)=382.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Bars
+          are colored: red=decrease (or near-zero), grey=decrease.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Correct
+          extraction:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Brazil:
+          bar_value=-2 (red, decrease, label \"2\" belongs to Brazil bar)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Turkiye:
+          bar_value=-1 (red, decrease, label \"1\" belongs to Turkiye bar)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Australia:
+          bar_value=0 (label \"0\", no movement)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  China:
+          bar_value=-7 (grey, decrease, label \"7\" belongs to CHINA bar — NOT Thailand)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Thailand:
+          bar_value=-17 (grey, decrease, label \"17\" belongs to THAILAND bar — NOT
+          Canada)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Canada:
+          bar_value=+42 (red/positive, increase, label \"42\" belongs to CANADA bar)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Others:
+          bar_value=-1 (remaining difference to reach 382)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"WRONG
+          extraction (the shift error to avoid):","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  China:
+          bar_value=-17 ← WRONG, this is Thailand''s value","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Thailand:
+          bar_value=-22 ← WRONG, this is Canada''s value","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Example
+          of correct waterfall JSON entry:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"label\":
+          \"China\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"bar_type\":
+          \"decrease\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"start_value\":
+          380,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"end_value\":
+          373,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"bar_value\":
+          -7,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"running_total\":
+          373","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          a bar''s values are not readable:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"label\":
+          \"China\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"bar_type\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"start_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"end_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"bar_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"running_total\":
+          \"UNCLEAR\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          9 — EMPTY CASE","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          no charts exist:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"graphs_found\":
+          0,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"graphs\":
+          [],","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"no_graph_reason\":
+          \"No chart or graph detected.\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          10 — OUTPUT ONLY JSON","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"No
+          markdown. No prose. No explanations. Output raw JSON only.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"════════
+          SELF-CHECK BEFORE OUTPUT ════════","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Before
+          writing the final JSON, verify:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] Every bar/point value is anchored to a specific visible element in the
+          image.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] No value was borrowed from a neighbour.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] Every label-value pair was confirmed by label-locking (Step B).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] UNCLEAR is used only where a data point EXISTS but is illegible.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] MISSING is used only where no data point exists.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] No invented or recalled values are present.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          any check fails, re-read the affected bars from the axis before outputting.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"════════
+          OUTPUT FORMAT ════════","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"value_marker_legend\":
+          {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    \"UNCLEAR\":
+          \"Data point exists in the chart but could not be reliably read from the
+          image.\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    \"MISSING\":
+          \"No data point exists at this position in the chart.\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  },","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"graphs_found\":
+          <integer>,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"graphs\":
+          [","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"graph_index\":
+          1,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"graph_type\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"title\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"x_axis\":
+          {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"label\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"unit\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"ticks\":
+          []","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      },","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"y_axis\":
+          {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"label\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"unit\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"ticks\":
+          []","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      },","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"legend\":
+          [],","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"data\":
+          [],","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"source_annotation\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"extraction_notes\":
+          \"\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    }","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  ]","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""}],"direction":"ltr","format":"","indent":0,"type":"root","version":1}}'
+        theme: blue
+        title: ''
+        type: ''
+        width: 240
+      height: 88
+      id: '1778225224938'
+      position:
+        x: 1286.1487978935668
+        y: 561.4788338994712
+      positionAbsolute:
+        x: 1286.1487978935668
+        y: 561.4788338994712
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 240
+    - data:
+        author: 'Anshika '
+        desc: ''
+        height: 88
+        selected: false
+        showAuthor: true
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"You
+          are a strict data auditor for chart extraction results. Your job is to catch
+          errors — especially value-shift errors in waterfall and stacked bar charts
+          — and flag them clearly.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"GENERAL
+          CHECKS:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"1.
+          Flag suspiciously round values (e.g. exactly 100, 1000, 5000 when no axis
+          tick confirms them) with \"_flagged\": true sibling.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"2.
+          Pie/donut: if % values deviate from 100 by >2, add \"sum_warning\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"3.
+          Data labels not in x_axis.ticks: add \"axis_mismatch_warning\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"4.
+          Normalise graph_type to canonical names:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   Bar
+          Chart, Grouped Bar Chart, Stacked Bar Chart, Column Chart,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   Histogram,
+          Line Chart, Area Chart, Pie Chart, Donut Chart,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   Scatter
+          Plot, Bubble Chart, Heatmap, Treemap, Waterfall Chart,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   Funnel
+          Chart, Sankey Diagram, Radar Chart, Box Plot,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   Candlestick
+          Chart, Gantt Chart, Sunburst Chart, Other.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"5.
+          graphs_found = 0: pass through unchanged.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"ANTI-HALLUCINATION
+          AUDIT:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"6.
+          For every data entry, verify it carries a label field. If label is missing
+          or blank, add \"missing_label_warning\": true.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"7.
+          Check for duplicate label entries (same label assigned twice). If found,
+          add \"duplicate_label_warning\": \"[label] appears N times\" and set audit_passed:
+          false.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"8.
+          UNCLEAR/MISSING CONSISTENCY: If a value field contains a number AND a corresponding
+          _flagged_value or UNCLEAR marker also exists for the same position — resolve
+          in favour of UNCLEAR. Do not allow both a numeric value and an UNCLEAR marker
+          for the same field.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"WATERFALL
+          CHART AUDITS — apply to every Waterfall Chart:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   a.
+          RUNNING TOTAL CONTINUITY: For each consecutive pair of incremental bars
+          (N, N+1), verify running_total[N] == start_value[N+1] (within 1-unit rounding).
+          If not, add \"waterfall_continuity_warning\": \"running_total mismatch at
+          bar [label]\" on that entry AND set audit_passed: false.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   b.
+          BAR VALUE ARITHMETIC: Verify bar_value == end_value - start_value for every
+          incremental bar. If incorrect, add \"bar_value_error\": true AND correct
+          the bar_value to the arithmetic result.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   c.
+          SIGN CONSISTENCY: Verify bar_type matches sign of bar_value (increase=positive,
+          decrease=negative). Flag mismatches with \"sign_mismatch_warning\": true.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   d.
+          TOTAL BAR VALIDATION: For total/subtotal bars, verify end_value matches
+          the running sum of all preceding incremental bars. If deviation >2 units,
+          add \"total_bar_warning\": \"expected [computed] got [reported]\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   e.
+          VALUE SHIFT DETECTION: Compare the sequence of bar_values (by magnitude)
+          against the printed data labels in order. If the magnitudes appear offset
+          by one position (e.g., China has magnitude 17 but the chart''s 4th incremental
+          label is 7), add \"value_shift_warning\": \"Values appear shifted by 1 label
+          position — China/Thailand/etc. may have neighbour''s value\" at the graph
+          level and set audit_passed: false.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   f.
+          NEIGHBOUR DUPLICATE CHECK: If two consecutive bars have identical bar_value
+          AND identical bar_type, flag with \"consecutive_duplicate_warning\": \"bars
+          [labelA] and [labelB] have identical values — verify against source image\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   g.
+          SIGN-FROM-COLOR AUDIT: For each bar, verify that the sign of bar_value matches
+          its declared bar_type:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      -
+          bar_type=decrease must have bar_value < 0. If bar_value is positive, correct
+          it to negative and add \"sign_corrected\": true.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      -
+          bar_type=increase must have bar_value > 0. If bar_value is negative, correct
+          it to positive and add \"sign_corrected\": true.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      -
+          bar_type=total/subtotal: bar_value should equal end_value (baseline 0).
+          Flag if not.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      If
+          any sign correction is made, set audit_passed: false and add \"sign_correction_warning\":
+          \"bar_value sign did not match bar_type for [label] — corrected\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   h.
+          PRINTED LABEL vs BAR_VALUE MAGNITUDE CHECK: If the chart has printed data
+          labels (e.g. \"7\", \"17\"), verify that abs(bar_value) matches the printed
+          label for each bar. Mismatch > 1 unit → add \"magnitude_mismatch_warning\":
+          \"bar [label] printed label [X] but bar_value magnitude is [Y]\" and set
+          audit_passed: false.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STACKED
+          BAR CHART AUDITS — apply to every Stacked Bar Chart:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   g.
+          SEGMENT ARITHMETIC: For each bar, verify sum of all segment_values == total
+          bar height (if total is shown). If mismatch >2 units, add \"segment_sum_warning\":
+          \"bar [label] segment sum [X] does not match total [Y]\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   h.
+          SEGMENT SHIFT DETECTION: If a series'' values appear identical to another
+          series shifted by one bar position, add \"segment_shift_warning\": \"possible
+          segment value shift in series [series_name]\" and set audit_passed: false.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"   i.
+          SEGMENT CONTINUITY: Verify each segment''s start_value equals the previous
+          segment''s end_value in the same bar. If not, add \"segment_continuity_warning\":
+          \"stack gap at [label] series [series_name]\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Add
+          top-level \"audit_passed\": true | false.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          audit_passed is false, add \"audit_failure_reasons\": [list of warning keys
+          that caused failure].","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Return
+          corrected/annotated JSON only. No prose.","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""}],"direction":"ltr","format":"","indent":0,"type":"root","version":1}}'
+        theme: blue
+        title: ''
+        type: ''
+        width: 240
+      height: 88
+      id: '1778225242230'
+      position:
+        x: 1623.3605100730058
+        y: 566.5370095821627
+      positionAbsolute:
+        x: 1623.3605100730058
+        y: 566.5370095821627
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 240
+    - data:
+        author: 'Anshika '
+        desc: ''
+        height: 88
+        selected: false
+        showAuthor: true
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"You
+          are a precise chart and graph extraction engine.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"════════
+          ABSOLUTE ANTI-HALLUCINATION CONTRACT ════════","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"BEFORE
+          extracting ANY value, swear to these rules:","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-1]
+          ZERO INVENTION: You may ONLY output values that you can directly see or
+          mathematically derive from what is visible in the image. You must NEVER
+          invent, guess, recall from memory, or infer a value that is not visually
+          anchored in the chart.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-2]
+          NO NEIGHBOUR BORROWING: You must NEVER copy, borrow, shift, or inherit a
+          value from a neighbouring bar, adjacent data point, previous series entry,
+          or similar-looking element. Every single data point is read in isolation
+          from its own position.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-3]
+          LABEL-VALUE LOCKING: Before writing any data entry, explicitly confirm:
+          \"Which x-axis label does this bar/point sit directly above (or next to)?\"
+          Only assign the value to that confirmed label. If you cannot confidently
+          determine the owning label, mark the value \"UNCLEAR\" — do NOT assign it
+          to the nearest guess.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-4]
+          NO PATTERN EXTRAPOLATION: Do not assume a value because it \"fits a pattern\"
+          or \"continues a trend\". Each point is read independently.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-5]
+          MISSING ≠ ZERO: A data point that is absent from the chart is NOT zero unless
+          the chart explicitly plots zero. Use \"MISSING\" for absent points.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[AH-6]
+          ONLY IMAGE CONTENT: Do not use any outside knowledge, training data, or
+          domain expectations about what values \"should\" be.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"════════
+          RULES ════════","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          1 — EXTRACT VISUALLY DERIVABLE VALUES","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Extract:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          explicitly printed values (data labels on the chart)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          values visually derivable from axes, gridlines, bar heights, line positions,
+          pie percentages, scatter locations, and legends.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          neither is possible, use UNCLEAR or MISSING as appropriate.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          2 — APPROXIMATE WHEN NECESSARY","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          a value is estimated visually from chart geometry (no printed label), output
+          the numeric estimate and add:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"\"_flagged_value\":
+          true","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          you cannot make a reliable estimate, use \"UNCLEAR\" instead of guessing.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          3 — ONLY USE IMAGE CONTENT","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Do
+          not use outside knowledge. Only use what can reasonably be interpreted from
+          the image.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          4 — UNCLEAR vs MISSING VALUES — STRICT DISTINCTION","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Use
+          exactly two markers:","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"|
+          Situation                                                                 |
+          Marker    | When to use                                           |","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"|---------------------------------------------------------------------------|-----------|-------------------------------------------------------|","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"|
+          Value exists in chart but cannot be read (blurry, cut off, overlapping)  |
+          \"UNCLEAR\" | Bar/point is present but its value cannot be measured |","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"|
+          Value is simply absent — no bar, point, or slice plotted                  |
+          \"MISSING\" | No data exists at this position in the chart          |","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"NEVER
+          use \"UNCLEAR\" for something that is simply absent.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"NEVER
+          use \"MISSING\" for something that is present but illegible.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"NEVER
+          use \"0\", \"—\", or any other placeholder instead of these two markers.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Include
+          this fixed legend once at the top of every JSON output:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"\"value_marker_legend\":
+          {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"UNCLEAR\":
+          \"Data point exists in the chart but could not be reliably read from the
+          image.\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"MISSING\":
+          \"No data point exists at this position in the chart.\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          5 — PIE CHARTS","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          percentages are visually inferable from slice labels or geometry, extract
+          them.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          a slice label is obscured or merged with another, mark it as \"UNCLEAR\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          a slice has no label at all, mark it as \"MISSING\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          6 — BAR / LINE / AREA CHARTS","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Estimate
+          values using axis ticks and gridlines. Each bar or point must be evaluated
+          against the axis independently. Do NOT assume a value based on a pattern
+          or neighboring value.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          7 — STACKED BAR CHARTS — STRICT INDEPENDENT SEGMENT READING","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP-BY-STEP
+          EXTRACTION PROCEDURE (follow for every bar):","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          A — AXIS CALIBRATION: Read all Y-axis tick labels and their pixel positions.
+          Compute pixels-per-unit scale.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          B — LABEL CONFIRMATION: Identify the exact x-axis label this bar belongs
+          to. Write it down before reading any values. Do NOT proceed until the label
+          is confirmed.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          C — SEGMENT ISOLATION: For each segment in this bar:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  1.
+          Find the segment''s bottom pixel edge on the Y-axis scale → this is start_value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  2.
+          Find the segment''s top pixel edge on the Y-axis scale → this is end_value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  3.
+          Compute segment_value = end_value - start_value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  4.
+          These three reads are INDEPENDENT — do not carry any number from another
+          segment or bar.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          D — UNCLEAR HANDLING: If any edge cannot be reliably placed on the Y-axis
+          scale, mark start_value, end_value, AND segment_value all as \"UNCLEAR\".
+          Do NOT substitute with a value from an adjacent segment.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          E — MISSING HANDLING: If a segment does not exist in this bar (not plotted),
+          mark all fields as \"MISSING\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"CRITICAL
+          SHIFT-ERROR PREVENTION:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER shift a segment''s value one position up or down in the stack.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER assign one segment''s value to a different segment just because they
+          look similar in size.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER derive a segment''s value by subtracting other segments from the total
+          — always read from the axis directly.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Example
+          of correct stacked bar extraction:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"label\":
+          \"Q2\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"series\":
+          \"Segment B\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"start_value\":
+          40,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"end_value\":
+          70,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"segment_value\":
+          30","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          start or end is not readable:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"label\":
+          \"Q2\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"series\":
+          \"Segment B\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"start_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"end_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"segment_value\":
+          \"UNCLEAR\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          8 — WATERFALL CHARTS — STRICT AXIS-BASED READING WITH LABEL LOCKING AND
+          COLOR-BASED SIGN DETECTION","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"WATERFALL
+          CHARTS HAVE TWO COMMON EXTRACTION FAILURE MODES — READ THIS FIRST:","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"FAILURE
+          MODE 1 — FLOATING DATA LABEL MISASSIGNMENT:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Waterfall
+          charts often print a small data label (e.g. \"7\", \"17\", \"22\") BETWEEN
+          or ABOVE bars.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"These
+          labels float in space and visually appear closer to the NEXT bar than the
+          one they belong to.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"THE
+          LABEL BELONGS TO THE BAR DIRECTLY BELOW IT OR CONNECTED TO IT — NOT the
+          bar to its right.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Do
+          NOT assign a floating label to a bar just because it appears spatially closer
+          to that bar.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"The
+          owning bar is determined by vertical alignment — trace the label straight
+          DOWN to find its bar.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"FAILURE
+          MODE 2 — SIGN DETERMINED FROM POSITION ALONE (WRONG):","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Do
+          NOT determine increase/decrease purely from whether a bar is positioned
+          high or low on the chart.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Waterfall
+          bars float — a bar high on the chart can still be a DECREASE.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Instead,
+          ALWAYS determine bar_type (and therefore the sign of bar_value) from:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  PRIMARY:
+          Bar fill color or pattern as defined in the chart legend.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    -
+          If the legend maps red → decrease and grey → decrease, those bars have NEGATIVE
+          bar_values.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    -
+          If the legend maps green/blue → increase, those bars have POSITIVE bar_values.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  SECONDARY
+          (if no legend): Whether the bar''s top edge is HIGHER than its bottom edge
+          starting from the previous running total:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    -
+          If the bar hangs DOWN from the previous running total → decrease (negative
+          bar_value).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    -
+          If the bar rises UP from the previous running total → increase (positive
+          bar_value).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"NEVER
+          read a printed data label (e.g. \"7\") as positive just because it has no
+          minus sign printed.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"The
+          SIGN comes from bar color/direction — the printed label gives only the MAGNITUDE.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"So
+          a bar labeled \"7\" that is colored red (decrease) has bar_value = -7, not
+          +7.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP-BY-STEP
+          EXTRACTION PROCEDURE (follow for every bar in order):","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          A — AXIS CALIBRATION:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  List
+          every visible Y-axis tick and its printed value. Compute the pixel-per-unit
+          scale.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  If
+          no Y-axis is visible, note this in extraction_notes and rely on printed
+          data labels for magnitude only.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          B — VERTICAL PLUMB-LINE ALIGNMENT:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"List
+          all x-axis labels left to right: [label_1, label_2, ...].","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"For
+          every floating data label (e.g., \"7\", \"17\", \"22\"), drop a mental vertical
+          line straight down to the chart floor.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"The
+          label belongs ONLY to the bar that this vertical line passes through.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"DO
+          NOT shift labels to the left or right because they look \"closer\" to another
+          bar''s text. In the provided chart, \"7\" is directly above China, \"17\"
+          is directly above Thailand, and \"22\" is directly above Canada.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          C — COLOR-BASED BAR TYPE AND SIGN:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  1.
+          Identify the chart''s color legend (e.g. red = decrease, green = increase,
+          grey = neutral/total).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  2.
+          For each bar, read its fill color, then assign bar_type from the legend:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"     -
+          decrease → bar_value will be NEGATIVE","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"     -
+          increase → bar_value will be POSITIVE","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"     -
+          total / subtotal → bar_value equals the full cumulative end_value","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  3.
+          If no legend exists, infer from bar direction (hanging down = decrease,
+          rising up = increase).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  4.
+          Record bar_type: \"increase\", \"decrease\", \"total\", \"subtotal\", or
+          \"UNCLEAR\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          D — LITERAL MAGNITUDE (NO-CALCULATION RULE):","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Read
+          the numerical magnitude from the vertically aligned label identified in
+          Step B.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STRICT
+          PROHIBITION: Do NOT calculate a bar''s value by subtracting the running
+          total from a target or final total.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STRICT
+          PROHIBITION: Do NOT invent labels like \"Mathematical Adjustment,\" \"Rounding,\"
+          or \"Other\" to force the bars to sum to the final total.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          a bar has no printed label and cannot be measured via the axis, mark it
+          as UNCLEAR.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          E — START AND END VALUES:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  start_value
+          = running_total of the previous bar (i.e. where this bar begins on the Y-axis).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  end_value
+          = start_value + bar_value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  For
+          total/subtotal bars: start_value = 0 (or baseline), end_value = running_total
+          at that point.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          F — REPORTED TOTALS vs. CALCULATED TOTALS:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Extract
+          the \"Starting Total\" and \"Ending Total\" exactly as they are printed
+          on the chart labels.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          the printed \"Ending Total\" value does not match the mathematical sum of
+          the \"Starting Total\" + \"Deltas,\" do NOT change any numbers.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Simply
+          report the values as seen. The \"Running Total\" field should reflect the
+          literal sum of extracted parts, even if it differs from the printed final
+          total.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"STEP
+          G — UNCLEAR/MISSING:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  If
+          bar color is ambiguous AND no axis reading is possible → ALL fields \"UNCLEAR\".","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  If
+          bar is absent from chart → ALL fields \"MISSING\".","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"CRITICAL
+          SHIFT-ERROR PREVENTION:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER carry one bar''s end_value as the next bar''s printed data label value.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER assign a floating label to the bar it is spatially nearest to — trace
+          vertically to the owning bar.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          NEVER assume a label without a minus sign is positive — use bar color for
+          sign.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"-
+          If you find yourself writing the same value for two consecutive bars — STOP
+          and re-read both.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Real-world
+          example (matches a known extraction failure):","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Chart
+          shows: Total(Oct)=383, then bars labeled 2, 1, 0, 7, 17, 22, 42, Total(Nov)=382.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Bars
+          are colored: red=decrease (or near-zero), grey=decrease.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Correct
+          extraction:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Brazil:
+          bar_value=-2 (red, decrease, label \"2\" belongs to Brazil bar)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Turkiye:
+          bar_value=-1 (red, decrease, label \"1\" belongs to Turkiye bar)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Australia:
+          bar_value=0 (label \"0\", no movement)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  China:
+          bar_value=-7 (grey, decrease, label \"7\" belongs to CHINA bar — NOT Thailand)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Thailand:
+          bar_value=-17 (grey, decrease, label \"17\" belongs to THAILAND bar — NOT
+          Canada)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Canada:
+          bar_value=+42 (red/positive, increase, label \"42\" belongs to CANADA bar)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Others:
+          bar_value=-1 (remaining difference to reach 382)","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"WRONG
+          extraction (the shift error to avoid):","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  China:
+          bar_value=-17 ← WRONG, this is Thailand''s value","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  Thailand:
+          bar_value=-22 ← WRONG, this is Canada''s value","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Example
+          of correct waterfall JSON entry:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"label\":
+          \"China\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"bar_type\":
+          \"decrease\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"start_value\":
+          380,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"end_value\":
+          373,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"bar_value\":
+          -7,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"running_total\":
+          373","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          a bar''s values are not readable:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"label\":
+          \"China\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"bar_type\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"start_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"end_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"bar_value\":
+          \"UNCLEAR\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"running_total\":
+          \"UNCLEAR\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          9 — EMPTY CASE","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          no charts exist:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"graphs_found\":
+          0,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"graphs\":
+          [],","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"no_graph_reason\":
+          \"No chart or graph detected.\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"RULE
+          10 — OUTPUT ONLY JSON","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"No
+          markdown. No prose. No explanations. Output raw JSON only.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"════════
+          SELF-CHECK BEFORE OUTPUT ════════","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"Before
+          writing the final JSON, verify:","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] Every bar/point value is anchored to a specific visible element in the
+          image.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] No value was borrowed from a neighbour.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] Every label-value pair was confirmed by label-locking (Step B).","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] UNCLEAR is used only where a data point EXISTS but is illegible.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] MISSING is used only where no data point exists.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"[
+          ] No invented or recalled values are present.","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"If
+          any check fails, re-read the affected bars from the axis before outputting.","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"════════
+          OUTPUT FORMAT ════════","type":"text","version":1},{"type":"linebreak","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"{","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"value_marker_legend\":
+          {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    \"UNCLEAR\":
+          \"Data point exists in the chart but could not be reliably read from the
+          image.\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    \"MISSING\":
+          \"No data point exists at this position in the chart.\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  },","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"graphs_found\":
+          <integer>,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  \"graphs\":
+          [","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"graph_index\":
+          1,","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"graph_type\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"title\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"x_axis\":
+          {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"label\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"unit\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"ticks\":
+          []","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      },","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"y_axis\":
+          {","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"label\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"unit\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"        \"ticks\":
+          []","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      },","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"legend\":
+          [],","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"data\":
+          [],","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"source_annotation\":
+          \"\",","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"      \"extraction_notes\":
+          \"\"","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"    }","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"  ]","type":"text","version":1},{"type":"linebreak","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"}","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"paragraph","version":1,"textFormat":0,"textStyle":""}],"direction":"ltr","format":"","indent":0,"type":"root","version":1}}'
+        theme: blue
+        title: ''
+        type: ''
+        width: 240
+      height: 88
+      id: '1778234786050'
+      position:
+        x: 1296.0035327005144
+        y: 725.7119298297149
+      positionAbsolute:
+        x: 1296.0035327005144
+        y: 725.7119298297149
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 240
     viewport:
-      x: -395.0000000000001
-      y: -98.89999999999992
-      zoom: 0.7
+      x: -160.65425368681463
+      y: -45.30243613272893
+      zoom: 0.46626810920143935
