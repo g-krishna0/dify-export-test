@@ -1,0 +1,966 @@
+app:
+  description: SharePoint connector using Microsoft Graph API. Supports list_files,
+    search, get_file, list_folder, list_sites. No plugin required. Set TENANT_ID,
+    CLIENT_ID, CLIENT_SECRET as environment variables before running.
+  icon: 📁
+  icon_background: '#0078D4'
+  mode: workflow
+  name: SharePoint Connector (Graph API)
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: Azure AD Tenant ID (Azure Portal > App Registration > Overview)
+    id: env-tenant-id
+    name: TENANT_ID
+    selector:
+    - env
+    - TENANT_ID
+    value: ''
+    value_type: secret
+  - description: Azure AD App Client ID
+    id: env-client-id
+    name: CLIENT_ID
+    selector:
+    - env
+    - CLIENT_ID
+    value: ''
+    value_type: secret
+  - description: Azure AD App Client Secret Value
+    id: env-client-secret
+    name: CLIENT_SECRET
+    selector:
+    - env
+    - CLIENT_SECRET
+    value: ''
+    value_type: secret
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: http-request
+      id: e-start-to-token
+      source: node-start
+      sourceHandle: source
+      target: node-http-get-token
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: code
+      id: e-token-success-to-validate
+      source: node-http-get-token
+      sourceHandle: success-branch
+      target: node-code-validate-token
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: end
+      id: e-token-fail-to-error
+      source: node-http-get-token
+      sourceHandle: fail-branch
+      target: node-end-auth-error
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: if-else
+      id: e-validate-to-ifelse1
+      source: node-code-validate-token
+      sourceHandle: source
+      target: node-ifelse-list-files
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: e-ifelse1-true
+      source: node-ifelse-list-files
+      sourceHandle: 'true'
+      target: node-http-list-files
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: if-else
+      id: e-ifelse1-false
+      source: node-ifelse-list-files
+      sourceHandle: 'false'
+      target: node-ifelse-search
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: e-ifelse2-true
+      source: node-ifelse-search
+      sourceHandle: 'true'
+      target: node-http-search
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: if-else
+      id: e-ifelse2-false
+      source: node-ifelse-search
+      sourceHandle: 'false'
+      target: node-ifelse-get-file
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: e-ifelse3-true
+      source: node-ifelse-get-file
+      sourceHandle: 'true'
+      target: node-http-get-file
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: if-else
+      id: e-ifelse3-false
+      source: node-ifelse-get-file
+      sourceHandle: 'false'
+      target: node-ifelse-list-folder
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: e-ifelse4-true
+      source: node-ifelse-list-folder
+      sourceHandle: 'true'
+      target: node-http-list-folder
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: if-else
+        targetType: http-request
+      id: e-ifelse4-false
+      source: node-ifelse-list-folder
+      sourceHandle: 'false'
+      target: node-http-list-sites
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: variable-aggregator
+      id: e-list-files-to-agg
+      source: node-http-list-files
+      sourceHandle: source
+      target: node-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: variable-aggregator
+      id: e-search-to-agg
+      source: node-http-search
+      sourceHandle: source
+      target: node-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: variable-aggregator
+      id: e-get-file-to-agg
+      source: node-http-get-file
+      sourceHandle: source
+      target: node-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: variable-aggregator
+      id: e-list-folder-to-agg
+      source: node-http-list-folder
+      sourceHandle: source
+      target: node-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: variable-aggregator
+      id: e-list-sites-to-agg
+      source: node-http-list-sites
+      sourceHandle: source
+      target: node-aggregator
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: variable-aggregator
+        targetType: code
+      id: e-agg-to-format
+      source: node-aggregator
+      sourceHandle: source
+      target: node-code-format-output
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: end
+      id: e-format-to-end
+      source: node-code-format-output
+      sourceHandle: source
+      target: node-end-success
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: http-request
+        targetType: code
+      id: node-http-get-token-source-node-code-validate-token-target
+      source: node-http-get-token
+      sourceHandle: source
+      target: node-code-validate-token
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 'action: list_files|search|get_file|list_folder|list_sites. Credentials
+          loaded from env vars TENANT_ID, CLIENT_ID, CLIENT_SECRET.'
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: Action
+          options:
+          - list_files
+          - search
+          - get_file
+          - list_folder
+          - list_sites
+          required: true
+          type: select
+          variable: action
+        - label: SharePoint Site ID
+          max_length: 300
+          required: false
+          type: text-input
+          variable: site_id
+        - label: Search Query (search action only)
+          max_length: 255
+          required: false
+          type: text-input
+          variable: search_query
+        - label: Item ID (get_file or list_folder only)
+          max_length: 300
+          required: false
+          type: text-input
+          variable: item_id
+      height: 243
+      id: node-start
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          type: no-auth
+        body:
+          data:
+          - key: grant_type
+            type: text
+            value: client_credentials
+          - key: client_id
+            type: text
+            value: '{{#env.CLIENT_ID#}}'
+          - key: client_secret
+            type: text
+            value: '{{#env.CLIENT_SECRET#}}'
+          - key: scope
+            type: text
+            value: https://graph.microsoft.com/.default
+          type: x-www-form-urlencoded
+        desc: OAuth2 client_credentials flow. Token auto-refreshes every workflow
+          run. Retries 3x on transient Azure AD errors.
+        error_strategy: fail-branch
+        headers: ''
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 1
+          retry_enabled: true
+          retry_interval: 2000
+        selected: false
+        ssl_verify: true
+        timeout:
+          connect: 10
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 10
+          read: 30
+          write: 10
+        title: Get Azure AD Token
+        type: http-request
+        url: https://login.microsoftonline.com/{{#env.TENANT_ID#}}/oauth2/v2.0/token
+      height: 254
+      id: node-http-get-token
+      position:
+        x: 400
+        y: 282
+      positionAbsolute:
+        x: 400
+        y: 282
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(body: str, status_code: int) -> dict:\n   \
+          \ try:\n        data = json.loads(body) if isinstance(body, str) else body\n\
+          \        access_token = data.get(\"access_token\", \"\")\n        if not\
+          \ access_token:\n            err = data.get(\"error_description\", data.get(\"\
+          error\", \"Token missing\"))\n            return {\"access_token\": \"\"\
+          , \"is_valid\": \"false\", \"token_type\": \"\", \"expires_in\": 0, \"error\"\
+          : f\"[{status_code}] {err}\"}\n        return {\"access_token\": access_token,\
+          \ \"is_valid\": \"true\", \"token_type\": data.get(\"token_type\", \"Bearer\"\
+          ), \"expires_in\": int(data.get(\"expires_in\", 3600)), \"error\": \"\"\
+          }\n    except Exception as ex:\n        return {\"access_token\": \"\",\
+          \ \"is_valid\": \"false\", \"token_type\": \"\", \"expires_in\": 0, \"error\"\
+          : str(ex)}\n"
+        code_language: python3
+        desc: Parses the Azure AD token response and validates the access_token exists.
+        outputs:
+          access_token:
+            children: null
+            type: string
+          error:
+            children: null
+            type: string
+          expires_in:
+            children: null
+            type: number
+          is_valid:
+            children: null
+            type: string
+          token_type:
+            children: null
+            type: string
+        selected: false
+        title: Validate Token
+        type: code
+        variables:
+        - value_selector:
+          - node-http-get-token
+          - body
+          variable: body
+        - value_selector:
+          - node-http-get-token
+          - status_code
+          variable: status_code
+      height: 97
+      id: node-code-validate-token
+      position:
+        x: 720
+        y: 212
+      positionAbsolute:
+        x: 720
+        y: 212
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: '='
+            id: cond-list-files
+            value: list_files
+            variable_selector:
+            - node-start
+            - action
+          id: 'true'
+          logical_operator: and
+        desc: Routes to List Files when action is list_files.
+        selected: false
+        title: action = list_files?
+        type: if-else
+      height: 169
+      id: node-ifelse-list-files
+      position:
+        x: 1040
+        y: 82
+      positionAbsolute:
+        x: 1040
+        y: 82
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: '='
+            id: cond-search
+            value: search
+            variable_selector:
+            - node-start
+            - action
+          logical_operator: and
+        desc: Routes to Search when action is search.
+        selected: false
+        title: action = search?
+        type: if-else
+      height: 153
+      id: node-ifelse-search
+      position:
+        x: 1040
+        y: 262
+      positionAbsolute:
+        x: 1040
+        y: 262
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: '='
+            id: cond-get-file
+            value: get_file
+            variable_selector:
+            - node-start
+            - action
+          logical_operator: and
+        desc: Routes to Get File when action is get_file.
+        selected: false
+        title: action = get_file?
+        type: if-else
+      height: 169
+      id: node-ifelse-get-file
+      position:
+        x: 1040
+        y: 442
+      positionAbsolute:
+        x: 1040
+        y: 442
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: '='
+            id: cond-list-folder
+            value: list_folder
+            variable_selector:
+            - node-start
+            - action
+          logical_operator: and
+        desc: Routes to List Folder when action is list_folder, else falls to list_sites.
+        selected: false
+        title: action = list_folder?
+        type: if-else
+      height: 169
+      id: node-ifelse-list-folder
+      position:
+        x: 1040
+        y: 622
+      positionAbsolute:
+        x: 1040
+        y: 622
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config:
+            token: '{{#node-code-validate-token.access_token#}}'
+            type: bearer
+          type: api-key
+        body:
+          data: []
+          type: none
+        default_value_content: '{"value":[],"error":{"code":"REQUEST_FAILED","message":"List
+          files request failed"}}'
+        desc: GET /drive/root/children. Returns all files and folders at the root
+          of the default document library.
+        error_strategy: default-value
+        headers: Accept:application/json
+        method: get
+        params: $select=id,name,size,webUrl,lastModifiedDateTime,file,folder&$orderby=name&$top=100
+        retry_config:
+          max_retries: 2
+          retry_enabled: true
+          retry_interval: 1500
+        selected: false
+        timeout:
+          connect: 10
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 10
+          read: 30
+          write: 10
+        title: List Root Files
+        type: http-request
+        url: https://graph.microsoft.com/v1.0/sites/{{#node-start.site_id#}}/drive/root/children
+      height: 253
+      id: node-http-list-files
+      position:
+        x: 1360
+        y: -70.3240467704082
+      positionAbsolute:
+        x: 1360
+        y: -70.3240467704082
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config:
+            token: '{{#node-code-validate-token.access_token#}}'
+            type: bearer
+          type: api-key
+        body:
+          data: []
+          type: none
+        default_value_content: '{"value":[],"error":{"code":"REQUEST_FAILED","message":"Search
+          request failed"}}'
+        desc: GET /drive/root/search. Full-text search. Returns top 20 matches.
+        error_strategy: default-value
+        headers: Accept:application/json
+        method: get
+        params: $select=id,name,size,webUrl,lastModifiedDateTime,file,folder&$top=20
+        retry_config:
+          max_retries: 2
+          retry_enabled: true
+          retry_interval: 1500
+        selected: false
+        timeout:
+          connect: 10
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 10
+          read: 30
+          write: 10
+        title: Search Files
+        type: http-request
+        url: https://graph.microsoft.com/v1.0/sites/{{#node-start.site_id#}}/drive/root/search(q='{{#node-start.search_query#}}')
+      height: 255
+      id: node-http-search
+      position:
+        x: 1360
+        y: 212
+      positionAbsolute:
+        x: 1360
+        y: 212
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config:
+            token: '{{#node-code-validate-token.access_token#}}'
+            type: bearer
+          type: api-key
+        body:
+          data: []
+          type: none
+        default_value_content: '{"error":{"code":"REQUEST_FAILED","message":"Get file
+          request failed"}}'
+        desc: GET /drive/items/{item_id}. Returns full metadata including download
+          URL, created/modified by.
+        error_strategy: default-value
+        headers: Accept:application/json
+        method: get
+        params: $select=id,name,size,webUrl,lastModifiedDateTime,file,folder,@microsoft.graph.downloadUrl,createdBy,lastModifiedBy
+        retry_config:
+          max_retries: 2
+          retry_enabled: true
+          retry_interval: 1500
+        selected: false
+        timeout:
+          connect: 10
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 10
+          read: 30
+          write: 10
+        title: Get File Metadata
+        type: http-request
+        url: https://graph.microsoft.com/v1.0/sites/{{#node-start.site_id#}}/drive/items/{{#node-start.item_id#}}
+      height: 255
+      id: node-http-get-file
+      position:
+        x: 1360
+        y: 442
+      positionAbsolute:
+        x: 1360
+        y: 442
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config:
+            token: '{{#node-code-validate-token.access_token#}}'
+            type: bearer
+          type: api-key
+        body:
+          data: []
+          type: none
+        default_value_content: '{"value":[],"error":{"code":"REQUEST_FAILED","message":"List
+          folder request failed"}}'
+        desc: GET /drive/items/{item_id}/children. Lists all files and subfolders
+          inside a specific folder.
+        error_strategy: default-value
+        headers: Accept:application/json
+        method: get
+        params: $select=id,name,size,webUrl,lastModifiedDateTime,file,folder&$orderby=name&$top=100
+        retry_config:
+          max_retries: 2
+          retry_enabled: true
+          retry_interval: 1500
+        selected: false
+        timeout:
+          connect: 10
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 10
+          read: 30
+          write: 10
+        title: List Folder Contents
+        type: http-request
+        url: https://graph.microsoft.com/v1.0/sites/{{#node-start.site_id#}}/drive/items/{{#node-start.item_id#}}/children
+      height: 271
+      id: node-http-list-folder
+      position:
+        x: 1360
+        y: 622
+      positionAbsolute:
+        x: 1360
+        y: 622
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config:
+            token: '{{#node-code-validate-token.access_token#}}'
+            type: bearer
+          type: api-key
+        body:
+          data: []
+          type: none
+        default_value_content: '{"value":[],"error":{"code":"REQUEST_FAILED","message":"List
+          sites request failed"}}'
+        desc: GET /sites?search=*. Lists all SharePoint sites in the tenant. Default
+          else branch when action is list_sites.
+        error_strategy: default-value
+        headers: Accept:application/json
+        method: get
+        params: $select=id,name,displayName,webUrl&$top=50
+        retry_config:
+          max_retries: 2
+          retry_enabled: true
+          retry_interval: 1500
+        selected: false
+        timeout:
+          connect: 10
+          max_connect_timeout: 10
+          max_read_timeout: 30
+          max_write_timeout: 10
+          read: 30
+          write: 10
+        title: List All Sites
+        type: http-request
+        url: https://graph.microsoft.com/v1.0/sites?search=*
+      height: 235
+      id: node-http-list-sites
+      position:
+        x: 1360
+        y: 802
+      positionAbsolute:
+        x: 1360
+        y: 802
+      type: custom
+      width: 244
+    - data:
+        advanced_settings:
+          group_enabled: false
+        desc: Collects the HTTP response from whichever branch ran. Only one branch
+          executes per invocation.
+        output_type: string
+        selected: false
+        title: Merge API Responses
+        type: variable-aggregator
+        variables:
+        - - node-http-list-files
+          - body
+        - - node-http-search
+          - body
+        - - node-http-get-file
+          - body
+        - - node-http-list-folder
+          - body
+        - - node-http-list-sites
+          - body
+      height: 275
+      id: node-aggregator
+      position:
+        x: 1680
+        y: 412
+      positionAbsolute:
+        x: 1680
+        y: 412
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(raw_response: str, action: str, site_id: str)\
+          \ -> dict:\n    try:\n        data = json.loads(raw_response) if isinstance(raw_response,\
+          \ str) else {}\n        if \"error\" in data and \"value\" not in data:\n\
+          \            err = data[\"error\"]\n            msg = f\"{err.get('code','ERROR')}:\
+          \ {err.get('message','Unknown error')}\"\n            return {\"success\"\
+          : \"false\", \"action\": action, \"count\": 0, \"items\": \"[]\", \"raw\"\
+          : raw_response[:2000], \"error_message\": msg, \"summary\": f\"Error - {msg}\"\
+          }\n        if \"value\" in data:\n            items = data[\"value\"]\n\
+          \            result = []\n            for item in items:\n             \
+          \   result.append({\"id\": item.get(\"id\", \"\"), \"name\": item.get(\"\
+          name\") or item.get(\"displayName\", \"\"), \"type\": \"folder\" if \"folder\"\
+          \ in item else \"file\", \"size_kb\": round(item.get(\"size\", 0) / 1024,\
+          \ 1), \"url\": item.get(\"webUrl\", \"\"), \"modified\": (item.get(\"lastModifiedDateTime\"\
+          ) or \"\")[:10], \"download_url\": item.get(\"@microsoft.graph.downloadUrl\"\
+          , \"\"), \"child_count\": item.get(\"folder\", {}).get(\"childCount\", 0)\
+          \ if \"folder\" in item else 0})\n            lines = [f\"Action '{action}'\
+          \ returned {len(result)} item(s):\"]\n            for it in result[:15]:\n\
+          \                icon = \"\\U0001f4c1\" if it[\"type\"] == \"folder\" else\
+          \ \"\\U0001f4c4\"\n                sz = f\" ({it['size_kb']} KB)\" if it[\"\
+          type\"] == \"file\" else f\" ({it['child_count']} items)\"\n           \
+          \     lines.append(f\"  {icon} {it['name']}{sz}\")\n            if len(result)\
+          \ > 15:\n                lines.append(f\"  ... and {len(result) - 15} more\"\
+          )\n            return {\"success\": \"true\", \"action\": action, \"count\"\
+          : len(result), \"items\": json.dumps(result, ensure_ascii=False), \"raw\"\
+          : raw_response[:2000], \"error_message\": \"\", \"summary\": \"\\n\".join(lines)}\n\
+          \        item = data\n        result = [{\"id\": item.get(\"id\", \"\"),\
+          \ \"name\": item.get(\"name\", \"\"), \"type\": \"folder\" if \"folder\"\
+          \ in item else \"file\", \"size_kb\": round(item.get(\"size\", 0) / 1024,\
+          \ 1), \"url\": item.get(\"webUrl\", \"\"), \"modified\": (item.get(\"lastModifiedDateTime\"\
+          ) or \"\")[:10], \"download_url\": item.get(\"@microsoft.graph.downloadUrl\"\
+          , \"\"), \"created_by\": (item.get(\"createdBy\") or {}).get(\"user\", {}).get(\"\
+          displayName\", \"\"), \"modified_by\": (item.get(\"lastModifiedBy\") or\
+          \ {}).get(\"user\", {}).get(\"displayName\", \"\")}]\n        r = result[0]\n\
+          \        summary = f\"File: {r['name']}\\n  Type: {r['type']} | Size: {r['size_kb']}\
+          \ KB\\n  Modified: {r['modified']} by {r['modified_by']}\\n  URL: {r['url']}\"\
+          \n        if r[\"download_url\"]:\n            summary += f\"\\n  Download:\
+          \ {r['download_url'][:80]}...\"\n        return {\"success\": \"true\",\
+          \ \"action\": action, \"count\": 1, \"items\": json.dumps(result, ensure_ascii=False),\
+          \ \"raw\": raw_response[:2000], \"error_message\": \"\", \"summary\": summary}\n\
+          \    except Exception as ex:\n        return {\"success\": \"false\", \"\
+          action\": action, \"count\": 0, \"items\": \"[]\", \"raw\": str(raw_response)[:500],\
+          \ \"error_message\": str(ex), \"summary\": f\"Internal error: {str(ex)}\"\
+          }\n"
+        code_language: python3
+        desc: Parses Graph API response from all branches. Returns structured items
+          list, count, human-readable summary, and error details.
+        outputs:
+          action:
+            children: null
+            type: string
+          count:
+            children: null
+            type: number
+          error_message:
+            children: null
+            type: string
+          items:
+            children: null
+            type: string
+          raw:
+            children: null
+            type: string
+          success:
+            children: null
+            type: string
+          summary:
+            children: null
+            type: string
+        selected: false
+        title: Format & Normalise Output
+        type: code
+        variables:
+        - value_selector:
+          - node-aggregator
+          - output
+          variable: raw_response
+        - value_selector:
+          - node-start
+          - action
+          variable: action
+        - value_selector:
+          - node-start
+          - site_id
+          variable: site_id
+      height: 129
+      id: node-code-format-output
+      position:
+        x: 2000
+        y: 412
+      positionAbsolute:
+        x: 2000
+        y: 412
+      selected: true
+      type: custom
+      width: 244
+    - data:
+        desc: Returns structured result. success=true means the Graph API call succeeded.
+        outputs:
+        - value_selector:
+          - node-code-format-output
+          - success
+          variable: success
+        - value_selector:
+          - node-code-format-output
+          - action
+          variable: action
+        - value_selector:
+          - node-code-format-output
+          - count
+          variable: count
+        - value_selector:
+          - node-code-format-output
+          - items
+          variable: items
+        - value_selector:
+          - node-code-format-output
+          - summary
+          variable: summary
+        - value_selector:
+          - node-code-format-output
+          - error_message
+          variable: error_message
+        selected: false
+        title: Output
+        type: end
+      height: 264
+      id: node-end-success
+      position:
+        x: 2320
+        y: 332
+      positionAbsolute:
+        x: 2320
+        y: 332
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        desc: Reached when the Azure AD token request fails. Check env variables and
+          Azure app permissions.
+        outputs:
+        - value_selector:
+          - node-code-validate-token
+          - is_valid
+          variable: success
+        - value_selector:
+          - node-code-validate-token
+          - error
+          variable: error_message
+        - value_selector:
+          - node-http-get-token
+          - status_code
+          variable: http_status
+        selected: false
+        title: Auth Error Output
+        type: end
+      height: 202
+      id: node-end-auth-error
+      position:
+        x: 720
+        y: 582
+      positionAbsolute:
+        x: 720
+        y: 582
+      selected: false
+      type: custom
+      width: 244
+    viewport:
+      x: -299.58907284234533
+      y: -203.07759709183125
+      zoom: 0.7453551933994601
