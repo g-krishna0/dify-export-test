@@ -1,0 +1,381 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: Email_Sender_Agent
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: ''
+    id: 6bfbb994-56a0-4847-aaac-6f75d7d9ff5a
+    name: SMTP_PASS
+    selector:
+    - env
+    - SMTP_PASS
+    value: ''
+    value_type: secret
+  - description: ''
+    id: b16cc9aa-e0c7-491e-ba8f-85360922ee25
+    name: SMTP_USER
+    selector:
+    - env
+    - SMTP_USER
+    value: test123testsmpt@gmail.com
+    value_type: string
+  - description: ''
+    id: 37d36930-6c9a-4ce6-9710-6ef6b28ccd25
+    name: SMTP_PORT
+    selector:
+    - env
+    - SMTP_PORT
+    value: 587
+    value_type: integer
+  - description: SMTP Server address
+    id: 263a98d2-40f2-4073-ba2e-309ec64a8745
+    name: SMTP_HOST
+    selector:
+    - env
+    - SMTP_HOST
+    value: smtp.gmail.com
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: template-transform
+      id: 1776660031057-source-1776660618498-target
+      source: '1776660031057'
+      sourceHandle: source
+      target: '1776660618498'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: template-transform
+        targetType: code
+      id: 1776660618498-source-1776661458218-target
+      source: '1776660618498'
+      sourceHandle: source
+      target: '1776661458218'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: 1776661458218-source-1776661567361-target
+      source: '1776661458218'
+      sourceHandle: source
+      target: '1776661567361'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Input
+        type: start
+        variables:
+        - label: to
+          max_length: 200
+          options: []
+          required: true
+          type: text-input
+          variable: to
+        - hide: true
+          label: cc
+          max_length: 200
+          options: []
+          required: false
+          type: text-input
+          variable: cc
+        - label: subject
+          max_length: 256
+          options: []
+          required: true
+          type: text-input
+          variable: subject
+        - label: body
+          max_length: null
+          options: []
+          required: true
+          type: paragraph
+          variable: body
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - video
+          - audio
+          - image
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: attachment
+          max_length: 10
+          options: []
+          required: false
+          type: file-list
+          variable: attachment
+      height: 193
+      id: '1776660031057'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        selected: true
+        template: "<!DOCTYPE html>\r\n<html>\r\n<head>\r\n  <style>\r\n    body {\
+          \ margin: 0; padding: 0; background-color: #f6f9fc; font-family: Arial,\
+          \ sans-serif; }\r\n    .wrapper { width: 100%; padding: 40px 0; background-color:\
+          \ #f6f9fc; }\r\n    .card { \r\n        max-width: 600px; \r\n        margin:\
+          \ 0 auto; \r\n        background: #ffffff; \r\n        border-radius: 4px;\
+          \ \r\n        box-shadow: 0 1px 3px rgba(0,0,0,0.1); \r\n        border-top:\
+          \ 4px solid #0052cc; \r\n    }\r\n    .header { padding: 20px; border-bottom:\
+          \ 1px solid #eee; text-align: left; }\r\n    .logo { font-size: 24px; font-weight:\
+          \ bold; color: #333; }\r\n    .content { padding: 30px; line-height: 1.6;\
+          \ color: #444; }\r\n    .footer { padding: 20px; font-size: 11px; color:\
+          \ #999; text-align: center; }\r\n  </style>\r\n</head>\r\n<body>\r\n  <div\
+          \ class=\"wrapper\">\r\n    <div class=\"card\">\r\n      <div class=\"\
+          header\">\r\n        <div class=\"logo\">glo<span style=\"color:#0052cc;\"\
+          >®</span></div>\r\n      </div>\r\n      <div class=\"content\">\r\n   \
+          \     {{ body }}\r\n      </div>\r\n    </div>\r\n    <div class=\"footer\"\
+          >\r\n      This is an automated message from GlobalLogic Practices Community.\r\
+          \n    </div>\r\n  </div>\r\n</body>\r\n</html>"
+        title: HTML Template
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1776660031057'
+          - body
+          value_type: string
+          variable: body
+      height: 53
+      id: '1776660618498'
+      position:
+        x: 443.3351834569763
+        y: 282
+      positionAbsolute:
+        x: 443.3351834569763
+        y: 282
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import smtplib\nimport requests\nimport uuid\nimport re\nfrom email.mime.multipart\
+          \ import MIMEMultipart\nfrom email.mime.text import MIMEText\nfrom email.mime.application\
+          \ import MIMEApplication\n\ndef inject_images(body):\n    \n    pattern\
+          \ = r\"\\{\\{image:(.*?)\\}\\}\"\n    \n    def replace(match):\n      \
+          \  parts = match.group(1).split(\"|\")\n        url = parts[0].strip()\n\
+          \        style = \"max-width:100%; height:auto; margin:15px 0; display:block;\
+          \ border-radius:8px;\"\n        \n        # Optional width check\n     \
+          \   for part in parts[1:]:\n            if \"width=\" in part:\n       \
+          \         w_val = part.split(\"=\")[1]\n                style += f\" width:{w_val}px;\"\
+          \n        \n        return f'<div style=\"text-align:center;\"><img src=\"\
+          {url}\" style=\"{style}\" alt=\"image\" /></div>'\n\n    return re.sub(pattern,\
+          \ replace, body)\n\ndef main(to, cc, subject, formatted_body, attachments,\
+          \ smtp_host, smtp_port, smtp_user, smtp_pass):\n    result = {\n       \
+          \ \"status\": \"fail\",\n        \"message_id\": \"error\",\n        \"\
+          sent_body\": \"Execution started\"\n    }\n    \n    try:\n        rich_html_body\
+          \ = inject_images(formatted_body)\n        rich_html_body = rich_html_body.replace('\\\
+          n', '<br>')\n        \n        msg = MIMEMultipart()\n        msg['To']\
+          \ = to\n        msg['Cc'] = cc if cc else \"\"\n        msg['Subject'] =\
+          \ subject\n        msg['From'] = str(smtp_user)\n\n        # Unique Message\
+          \ ID\n        msg_id = str(uuid.uuid4())\n        msg['Message-ID'] = f\"\
+          <{msg_id}>\"  \n        \n        #  HTML Body \n        msg.attach(MIMEText(rich_html_body,\
+          \ 'html'))\n\n        #  Attachments handle \n        if attachments and\
+          \ isinstance(attachments, list):\n            for file_info in attachments:\n\
+          \                file_url = file_info.get('url')\n                file_name\
+          \ = file_info.get('filename', 'attachment.pdf')\n                \n    \
+          \            if file_url:\n                    response = requests.get(file_url)\n\
+          \                    if response.status_code == 200:\n                 \
+          \       part = MIMEApplication(response.content)\n                     \
+          \   part.add_header(\n                            'Content-Disposition',\n\
+          \                            'attachment',\n                           \
+          \ filename=file_name\n                        )\n                      \
+          \  msg.attach(part)\n\n        #  Recipients list \n        recipients =\
+          \ [to]\n        if cc and cc != 'dbhwby':\n            recipients += [email.strip()\
+          \ for email in cc.split(',') if email.strip()]\n\n        # 5. SMTP Connection\
+          \ / Sending\n        with smtplib.SMTP(str(smtp_host).strip(), int(smtp_port))\
+          \ as server:\n            server.starttls()\n            server.login(str(smtp_user),\
+          \ str(smtp_pass))\n            server.sendmail(str(smtp_user), recipients,\
+          \ msg.as_string())\n\n        # Success Response\n        result[\"status\"\
+          ] = \"success\"\n        result[\"message_id\"] = msg_id   \n        result[\"\
+          sent_body\"] = rich_html_body\n\n    except Exception as e:\n        result[\"\
+          status\"] = \"fail\"\n        result[\"sent_body\"] = f\"SMTP Error: {str(e)}\"\
+          \n    \n    return result"
+        code_language: python3
+        desc: ''
+        outputs:
+          message_id:
+            children: null
+            type: string
+          sent_body:
+            children: null
+            type: string
+          status:
+            children: null
+            type: string
+        selected: false
+        title: Logic
+        type: code
+        variables:
+        - value_selector:
+          - '1776660031057'
+          - to
+          value_type: string
+          variable: to
+        - value_selector:
+          - '1776660031057'
+          - cc
+          value_type: string
+          variable: cc
+        - value_selector:
+          - '1776660031057'
+          - subject
+          value_type: string
+          variable: subject
+        - value_selector:
+          - '1776660031057'
+          - body
+          value_type: string
+          variable: formatted_body
+        - value_selector:
+          - '1776660031057'
+          - attachment
+          value_type: array[file]
+          variable: attachments
+        - value_selector:
+          - env
+          - SMTP_HOST
+          value_type: string
+          variable: smtp_host
+        - value_selector:
+          - env
+          - SMTP_PORT
+          value_type: number
+          variable: smtp_port
+        - value_selector:
+          - env
+          - SMTP_USER
+          value_type: string
+          variable: smtp_user
+        - value_selector:
+          - env
+          - SMTP_PASS
+          value_type: secret
+          variable: smtp_pass
+      height: 53
+      id: '1776661458218'
+      position:
+        x: 747.3351834569763
+        y: 282
+      positionAbsolute:
+        x: 747.3351834569763
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1776661458218'
+          - status
+          value_type: string
+          variable: status
+        - value_selector:
+          - '1776661458218'
+          - message_id
+          value_type: string
+          variable: message_id
+        - value_selector:
+          - '1776661458218'
+          - sent_body
+          value_type: string
+          variable: msg
+        selected: false
+        title: End
+        type: end
+      height: 142
+      id: '1776661567361'
+      position:
+        x: 1051.3351834569762
+        y: 282
+      positionAbsolute:
+        x: 1051.3351834569762
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 35.80672969535476
+      y: 6.508366410237159
+      zoom: 0.46887922622939215
