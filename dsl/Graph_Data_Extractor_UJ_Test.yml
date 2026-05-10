@@ -1,0 +1,706 @@
+app:
+  description: 'Upload any file (PDF, image, DOCX, XLSX, PPTX) containing charts or
+    graphs. The workflow detects every graph, extracts the raw data with strict anti-hallucination
+    controls, and returns a verified markdown report. No user question is required
+    — just drop the file.
+
+    '
+  icon: 📊
+  icon_background: '#E6F1FB'
+  mode: workflow
+  name: Graph Data Extractor UJ Test
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: edge-vision-to-checker
+      source: node-vision-extractor
+      sourceHandle: source
+      target: node-fact-checker
+      targetHandle: target
+      type: custom
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: edge-checker-to-formatter
+      source: node-fact-checker
+      sourceHandle: source
+      target: node-table-formatter
+      targetHandle: target
+      type: custom
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: edge-formatter-to-summary
+      source: node-table-formatter
+      sourceHandle: source
+      target: node-summary-writer
+      targetHandle: target
+      type: custom
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: template-transform
+      id: edge-summary-to-template
+      source: node-summary-writer
+      sourceHandle: source
+      target: node-output-template
+      targetHandle: target
+      type: custom
+    - data:
+        isInLoop: false
+        sourceType: template-transform
+        targetType: end
+      id: edge-template-to-end
+      source: node-output-template
+      sourceHandle: source
+      target: node-end
+      targetHandle: target
+      type: custom
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: node-start-source-node-file-classifier-target
+      source: node-start
+      sourceHandle: source
+      target: node-file-classifier
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: node-file-classifier-source-node-vision-extractor-target
+      source: node-file-classifier
+      sourceHandle: source
+      target: node-vision-extractor
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: Workflow entry point. The caller supplies one file. No free-text question
+          is required.
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - image
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          label: input_file
+          max_length: 5
+          options: []
+          required: true
+          type: file-list
+          variable: input_file
+      height: 150
+      id: node-start
+      position:
+        x: 637.1428571428572
+        y: 318.2857142857143
+      positionAbsolute:
+        x: 637.1428571428572
+        y: 318.2857142857143
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        code: "import os\n\ndef get_file_name(f) -> str:\n    for attr in (\"filename\"\
+          , \"name\"):\n        try:\n            val = getattr(f, attr, None)\n \
+          \           if val:\n                return str(val)\n        except Exception:\n\
+          \            pass\n    if isinstance(f, dict):\n        return f.get(\"\
+          filename\") or f.get(\"name\") or \"\"\n    return \"\"\n\ndef get_mime(f)\
+          \ -> str:\n    try:\n        mime = getattr(f, \"mime_type\", None)\n  \
+          \      if mime:\n            return str(mime)\n    except Exception:\n \
+          \       pass\n    if isinstance(f, dict):\n        return f.get(\"mime_type\"\
+          , \"\")\n    return \"\"\n\ndef main(input_files) -> dict:\n    IMAGE_EXTS\
+          \    = {\".png\", \".jpg\", \".jpeg\", \".tiff\",\n                    \
+          \ \".bmp\", \".webp\", \".gif\"}\n    DOCUMENT_EXTS = {\".pdf\", \".docx\"\
+          , \".xlsx\", \".pptx\", \".csv\"}\n\n    if input_files is None:\n     \
+          \   files = []\n    elif isinstance(input_files, list):\n        files =\
+          \ input_files\n    else:\n        files = [input_files]\n\n    if not files:\n\
+          \        return {\n            \"file_type\":   \"unknown\",\n         \
+          \   \"is_image\":    \"false\",\n            \"is_document\": \"false\"\
+          ,\n            \"file_names\":  \"\",\n        }\n\n    is_image    = False\n\
+          \    is_document = False\n    file_names  = []\n\n    for f in files:\n\
+          \        name = get_file_name(f)\n        mime = get_mime(f)\n        ext\
+          \  = os.path.splitext(name)[1].lower() if name else \"\"\n\n        if ext\
+          \ in IMAGE_EXTS or mime.startswith(\"image/\"):\n            is_image =\
+          \ True\n            if not name:\n                name = \"image_file\"\n\
+          \        elif ext in DOCUMENT_EXTS or mime in (\n            \"application/pdf\"\
+          ,\n            \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\"\
+          ,\n            \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\"\
+          ,\n            \"application/vnd.openxmlformats-officedocument.presentationml.presentation\"\
+          ,\n            \"text/csv\",\n        ):\n            is_document = True\n\
+          \            if not name:\n                name = \"document_file\"\n  \
+          \      else:\n            is_document = True\n            if not name:\n\
+          \                name = \"uploaded_file\"\n\n        file_names.append(name)\n\
+          \n    if is_document:\n        file_type = \"document\"\n        is_image\
+          \  = False\n    elif is_image:\n        file_type = \"image\"\n    else:\n\
+          \        file_type = \"unknown\"\n\n    return {\n        \"file_type\"\
+          :   file_type,\n        \"is_image\":    str(is_image).lower(),\n      \
+          \  \"is_document\": str(is_document).lower(),\n        \"file_names\": \
+          \ \", \".join(file_names),\n    }\n"
+        code_language: python3
+        desc: Inspect file extension and MIME type. Returns routing flags and file
+          names.
+        outputs:
+          file_names:
+            children: null
+            type: string
+          file_type:
+            children: null
+            type: string
+          is_document:
+            children: null
+            type: string
+          is_image:
+            children: null
+            type: string
+        selected: false
+        title: File type classifier
+        type: code
+        variables:
+        - value_selector:
+          - node-start
+          - input_file
+          value_type: array[file]
+          variable: input_files
+      height: 98
+      id: node-file-classifier
+      position:
+        x: 940.5220410066494
+        y: 318.2857142857143
+      positionAbsolute:
+        x: 940.5220410066494
+        y: 318.2857142857143
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: Send image(s) to a multimodal LLM with strict anti-hallucination rules.
+        model:
+          completion_params:
+            temperature: 0
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-vision
+          role: system
+          text: "You are a precise chart and graph extraction engine.\nYou extract\
+            \ ONLY what you can directly see in the image.\nYou never generate, infer,\
+            \ or assume data from training knowledge.\n\n════════ STRICT ANTI-HALLUCINATION\
+            \ RULES ════════\n\nRULE 0 — GROUND YOURSELF FIRST (MANDATORY)\nBefore\
+            \ extracting anything, count the number of charts\nyou can visually see\
+            \ in the image. If you see zero charts\nor the image is blank, return\
+            \ immediately:\n\n{\n  \"graphs_found\": 0,\n  \"graphs\": [],\n  \"no_graph_reason\"\
+            : \"No chart or graph detected in image.\"\n}\n\nDo NOT proceed to extraction\
+            \ if you cannot see a chart.\nDo NOT generate plausible-sounding data\
+            \ from memory.\n\n════════ EXTRACTION RULES ════════\n\nRULE 1 — EXTRACT\
+            \ ONLY WHAT IS VISIBLE\nExtract ONLY:\n- Values explicitly printed on\
+            \ the chart (labels, axis ticks,\n  data point annotations, legend text,\
+            \ title text)\n- Values visually derivable with reasonable confidence\
+            \ from\n  bar heights, line positions, pie slice sizes, scatter\n  point\
+            \ locations, and gridlines\n\nNEVER extract or invent:\n- Values from\
+            \ training memory or domain knowledge\n- Data points not present in the\
+            \ image\n- Assumed series names, titles, or units not visible in the image\n\
+            - Interpolated values between two visible points\n\nRULE 2 — VISUALLY\
+            \ ESTIMATED VALUES\nIf a value is estimated from chart geometry (e.g.\
+            \ reading a bar\nheight against a gridline) rather than explicitly printed,\n\
+            mark it with:\n\n\"_flagged_value\": true\n\nExample:\n{\n  \"label\"\
+            : \"Q1\",\n  \"series\": \"North\",\n  \"value\": 12000,\n  \"_flagged_value\"\
+            : false\n}\n{\n  \"label\": \"Q2\",\n  \"series\": \"North\",\n  \"value\"\
+            : 14500,\n  \"_flagged_value\": true\n}\n\nRULE 3 — UNCLEAR OR UNREADABLE\
+            \ VALUES\nIf any text, label, value, or data point is blurry, cut off,\n\
+            occluded, too small to read, or ambiguous — use exactly:\n\n\"value\"\
+            : \"[text unclear]\"\n\nUse \"[text unclear]\" for BOTH numeric values\
+            \ AND text fields\n(titles, series names, axis labels) when they cannot\
+            \ be\nconfidently read.\n\nExamples:\n- Axis tick partially cut off  \
+            \ → \"value\": \"[text unclear]\"\n- Bar height ambiguous          → \"\
+            value\": \"[text unclear]\"\n- Series name unreadable        → \"series\"\
+            : \"[text unclear]\"\n- Chart title blurry            → \"title\": \"\
+            [text unclear]\"\n\nDo NOT guess. Do NOT substitute a plausible value.\n\
+            \nRULE 4 — MISSING AXIS OR SCALE\nIf the y-axis has no ticks or the scale\
+            \ cannot be determined,\ndo NOT estimate bar heights. Mark all affected\
+            \ values as:\n\n\"value\": \"[text unclear]\",\n\"extraction_notes\":\
+            \ \"Y-axis scale not visible; bar heights not extractable.\"\n\nRULE 5\
+            \ — PIE CHARTS\nExtract percentages only if they are:\n- Printed as labels\
+            \ on or adjacent to slices, OR\n- Inferable with high confidence from\
+            \ slice angle/size\n\nIf a slice has no label and its size is ambiguous,\
+            \ use:\n\"value\": \"[text unclear]\"\n\nRULE 6 — BAR / LINE / AREA CHARTS\n\
+            Estimate values using axis ticks and gridlines.\nRound estimates to the\
+            \ nearest visible gridline interval.\nAlways set \"_flagged_value\": true\
+            \ for estimated values.\nIf the scale is absent or the position is truly\
+            \ ambiguous,\nuse \"[text unclear]\".\n\nRULE 7 — STACKED / GROUPED BARS\n\
+            Extract each segment separately.\nIf individual segment boundaries are\
+            \ not clearly visible,\nmark segment values as \"[text unclear]\" rather\
+            \ than guessing.\n\nRULE 8 — WATERFALL CHARTS\nIdentify start, delta (positive/negative),\
+            \ and end bars.\nIf the direction (up/down) of a bar is unclear, mark\
+            \ as\n\"[text unclear]\".\n\nRULE 9 — COMBO CHARTS (BAR + LINE)\nExtract\
+            \ bar series and line series separately.\nClearly label which series belongs\
+            \ to which axis\n(primary vs secondary) in extraction_notes if both axes\n\
+            are present.\n\nRULE 10 — HALLUCINATION SELF-CHECK (MANDATORY)\nBefore\
+            \ finalising output, ask yourself for each data point:\n\n  \"Can I see\
+            \ this value directly in the image, or am I\n   recalling it from training\
+            \ data?\"\n\nIf the honest answer is \"I am recalling from training data\"\
+            \n→ replace the value with \"[text unclear]\"\n→ add to extraction_notes:\
+            \ \"Value removed: hallucination risk.\"\n\nRULE 11 — EMPTY CASE\nIf no\
+            \ charts exist in the image:\n\n{\n  \"graphs_found\": 0,\n  \"graphs\"\
+            : [],\n  \"no_graph_reason\": \"No chart or graph detected.\"\n}\n\nRULE\
+            \ 12 — OUTPUT ONLY RAW JSON\nNo markdown fences (no ```json).\nNo prose\
+            \ before or after the JSON.\nNo explanations.\nOutput must begin with\
+            \ { and end with }.\n\nRULE 13 — WATERFALL CHARTS (COMPLETE READING PROTOCOL)\n\
+            \n════ WHAT A WATERFALL CHART IS ════\n\nA waterfall chart shows how an\
+            \ initial value is built up or\nreduced through a series of positive and\
+            \ negative steps to\nreach a final value.\n\nIt has THREE bar types —\
+            \ you MUST identify each correctly:\n\n  START bar   — sits on the baseline\
+            \ (x-axis = 0).\n                Usually the leftmost bar. Usually coloured\n\
+            \                differently (grey, dark, or outlined).\n            \
+            \    Read its TOP as the start value.\n\n  DELTA bars  — float above the\
+            \ baseline. They do NOT touch\n                the x-axis. Each one begins\
+            \ where the\n                previous bar ended.\n                → If\
+            \ the bar goes UP   → positive delta value\n                → If the bar\
+            \ goes DOWN → negative delta value\n                Measure the HEIGHT\
+            \ of the bar (not its top),\n                using the axis scale. Assign\
+            \ the correct sign.\n\n  END bar     — sits on the baseline like the START\
+            \ bar.\n                Usually the rightmost bar. Usually the same\n\
+            \                colour as the START bar.\n                Read its TOP\
+            \ as the end value.\n\n════ CRITICAL: HOW TO READ DELTA BAR VALUES ════\n\
+            \nDelta bars are SUSPENDED — they float. To read their value:\n\n  Step\
+            \ 1. Identify where the bar STARTS (its bottom edge).\n  Step 2. Identify\
+            \ where the bar ENDS (its top edge).\n  Step 3. Value = top_edge − bottom_edge\
+            \ (with sign).\n           Positive delta → bar top is ABOVE its bottom.\n\
+            \           Negative delta → bar top is BELOW its bottom\n           (i.e.\
+            \ the bar hangs downward from its starting point).\n\nNEVER read a delta\
+            \ bar's top edge against the y-axis as if\nit were a normal bar from zero.\
+            \ This is the most common error.\n\nNEVER use the absolute y-axis position\
+            \ of the bar top.\nALWAYS use the bar HEIGHT (difference between top and\
+            \ bottom edges).\n\n════ SIGN RULES ════\n\n  Green / blue / upward bar\
+            \   → positive (+) delta\n  Red / orange / downward bar → negative (−)\
+            \ delta\n  If colour is ambiguous, use bar direction:\n    bar top ABOVE\
+            \ its starting point → positive\n    bar top BELOW its starting point\
+            \ → negative\n  If direction is truly unclear     → \"value\": \"[text\
+            \ unclear]\"\n\n════ UNLABELLED BARS ════\n\nIf a bar exists in the chart\
+            \ but has no printed value on it:\n  → Still include it in the data array.\n\
+            \  → Set \"label\" to the x-axis tick name for that bar.\n  → Set \"value\"\
+            \ to \"[text unclear]\" — do NOT assume 0.\n  → Set \"_flagged_value\"\
+            : true.\n  → Add to extraction_notes:\n    \"Bar at [label] has no printed\
+            \ value; height unreadable.\"\n\nNEVER set an unlabelled bar to 0 unless\
+            \ you can confirm\nfrom the axis that it genuinely has zero height.\n\n\
+            ════ CONNECTOR LINES ════\n\nWaterfall charts often show thin horizontal\
+            \ connector lines\nbetween adjacent bars. These are visual guides only.\n\
+            Do NOT treat connector lines as bars.\nDo NOT extract values from connector\
+            \ lines.\n\n════ RECONCILIATION CHECK (MANDATORY) ════\n\nAfter extracting\
+            \ all values, verify:\n\n  start_value + sum(all delta values) = end_value\n\
+            \nIf the equation balances:\n  → extraction_notes: \"Reconciliation: [start]\
+            \ + [sum] = [end]. ✓\"\n\nIf it does NOT balance:\n  → extraction_notes:\n\
+            \    \"Reconciliation failed: start=[X] + deltas=[Y] = [Z],\n     but\
+            \ extracted end=[W]. Gap=[W-Z].\n     One or more delta values may be\
+            \ missing or misread.\"\n  → Do NOT adjust values to force reconciliation.\n\
+            \  → Do NOT invent a balancing delta.\n\n════ DATA FORMAT ════\n\nUse\
+            \ \"series\" to label bar type:\n  \"series\": \"start\"   → opening bar\n\
+            \  \"series\": \"delta\"   → intermediate change bar\n  \"series\": \"\
+            end\"     → closing bar\n\n\"_flagged_value\": false  → value explicitly\
+            \ printed on chart\n\"_flagged_value\": true   → value estimated from\
+            \ bar geometry\n\n════ WORKED EXAMPLE ════\n\nChart: Revenue Bridge —\
+            \ start 100, sales +40, returns −20, end 120\n\nCORRECT output:\n{\n \
+            \ \"graph_type\": \"waterfall\",\n  \"data\": [\n    { \"label\": \"Starting\
+            \ Revenue\", \"series\": \"start\", \"value\": 100, \"_flagged_value\"\
+            : false },\n    { \"label\": \"Sales Growth\",     \"series\": \"delta\"\
+            , \"value\": 40,  \"_flagged_value\": false },\n    { \"label\": \"Returns\"\
+            ,          \"series\": \"delta\", \"value\": -20, \"_flagged_value\":\
+            \ false },\n    { \"label\": \"Final Profit\",     \"series\": \"end\"\
+            ,   \"value\": 120, \"_flagged_value\": false }\n  ],\n  \"extraction_notes\"\
+            : \"Reconciliation: 100 + 40 + (−20) = 120. ✓\"\n}\n\nWRONG — do NOT do\
+            \ these:\n  ✗ Returns extracted as +20 instead of −20        (sign error)\n\
+            \  ✗ Returns top edge read as 120 instead of height 20 (absolute position\
+            \ error)\n  ✗ Unlabelled bar set to 0                        (zero assumption)\n\
+            \  ✗ End bar labelled as \"delta\"                    (type error)\n \
+            \ ✗ Connector line extracted as a data bar         (connector error)\n\
+            \n════════ OUTPUT FORMAT ════════\n\n{\n  \"graphs_found\": <integer>,\n\
+            \  \"graphs\": [\n    {\n      \"graph_index\": 1,\n      \"graph_type\"\
+            : \"\",\n      \"title\": \"\",\n      \"x_axis\": {\n        \"label\"\
+            : \"\",\n        \"unit\": \"\",\n        \"ticks\": []\n      },\n  \
+            \    \"y_axis\": {\n        \"label\": \"\",\n        \"unit\": \"\",\n\
+            \        \"ticks\": []\n      },\n      \"legend\": [],\n      \"data\"\
+            : [\n        {\n          \"label\": \"\",\n          \"series\": \"\"\
+            ,\n          \"value\": <number or \"[text unclear]\">,\n          \"\
+            _flagged_value\": false\n        }\n      ],\n      \"source_annotation\"\
+            : \"\",\n      \"extraction_notes\": \"\"\n    }\n  ]\n}"
+        - id: user-vision
+          role: user
+          text: 'File name(s): {{#node-file-classifier.file_names#}}
+
+
+            Extract all charts and graphs from the image(s) above.
+
+            Follow all RULES exactly. Return only JSON.
+
+            '
+        selected: false
+        title: Vision extractor
+        type: llm
+        variables:
+        - value_selector:
+          - node-file-classifier
+          - file_names
+          variable: file_names
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - node-start
+            - input_file
+          enabled: true
+      height: 134
+      id: node-vision-extractor
+      position:
+        x: 1262.7927556254285
+        y: 318.2857142857143
+      positionAbsolute:
+        x: 1262.7927556254285
+        y: 318.2857142857143
+      selected: true
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - node-vision-extractor
+          - text
+        desc: Audit vision JSON for hallucinations, impossible numbers, type errors.
+        model:
+          completion_params:
+            temperature: 0
+            top_p: 0
+          mode: chat
+          name: gemini-2.5-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-checker
+          role: system
+          text: "You are a strict data auditor for chart extraction results.\n\nCHECKS:\n\
+            1. Flag suspiciously round values with \"_flagged\": true sibling.\n2.\
+            \ Pie/donut: if % values deviate from 100 by >2, add \"sum_warning\".\n\
+            3. Data labels not in x_axis.ticks: add \"axis_mismatch_warning\".\n4.\
+            \ Normalise graph_type to canonical names:\n   Bar Chart, Grouped Bar\
+            \ Chart, Stacked Bar Chart, Column Chart,\n   Histogram, Line Chart, Area\
+            \ Chart, Pie Chart, Donut Chart,\n   Scatter Plot, Bubble Chart, Heatmap,\
+            \ Treemap, Waterfall Chart,\n   Funnel Chart, Sankey Diagram, Radar Chart,\
+            \ Box Plot,\n   Candlestick Chart, Gantt Chart, Sunburst Chart, Other.\n\
+            5. graphs_found = 0: pass through unchanged.\n\nAdd top-level \"audit_passed\"\
+            : true | false.\nReturn corrected/annotated JSON only. No prose.\n"
+        - id: user-checker
+          role: user
+          text: 'Audit this vision-extracted graph JSON:
+
+
+            {{#node-vision-extractor.text#}}
+
+            '
+        selected: false
+        title: Fact checker / auditor
+        type: llm
+        variables:
+        - value_selector:
+          - node-vision-extractor
+          - text
+          variable: vision_json
+        vision:
+          enabled: false
+      height: 134
+      id: node-fact-checker
+      position:
+        x: 1567.787777569486
+        y: 318.2857142857143
+      positionAbsolute:
+        x: 1567.787777569486
+        y: 318.2857142857143
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - node-vision-extractor
+          - text
+        desc: Convert audited graph JSON into clean markdown tables.
+        model:
+          completion_params:
+            temperature: 0
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-formatter
+          role: system
+          text: "Convert audited graph JSON {{#context#}}into markdown tables.\n\n\
+            RULES:\n1. Use charts array only. Ignore graphs_found if inconsistent.\n\
+            2. If charts is missing or empty → output:\n   > ℹ No charts detected.\n\
+            \n3. Heading per graph:\n   ### Graph {index}: {title} ({type})\n\n4.\
+            \ Layout by type:\n   - Bar/Column/Line/Area:\n     | {x_label} | Value\
+            \ |\n   - Pie/Donut:\n     | Category | Value | % |\n   - Scatter/Bubble:\n\
+            \     | {x_label} | {y_label} | Label |\n   - Heatmap: rows=y, cols=x\n\
+            \   - Other: best fit\n\n5. Any UNREADABLE value → \"—\"\n   Add footnote\
+            \ once at end:\n   > ⚠ Some values shown as —\n\n6. Any value with _flagged\
+            \ or _flagged_value true → append \"†\"\n   Add footnote once at end:\n\
+            \   > † May be approximate.\n\n7. Warnings (axis_mismatch_warning, sum_warning,\
+            \ etc.) must appear as blockquote below the table.\n\n8. source_annotation\
+            \ if present:\n   > Source: {text}\n\n9. Numbers: use commas for thousands.\n\
+            10. Give output only for whatever graph is found and the graph number.\n\
+            Return ONLY markdown."
+        - id: user-formatter
+          role: user
+          text: 'Format this audited JSON into markdown tables:
+
+
+            {{#node-vision-extractor.text#}}
+
+            '
+        selected: false
+        title: Table formatter
+        type: llm
+        variables:
+        - value_selector:
+          - node-fact-checker
+          - text
+          variable: audited_json
+        vision:
+          enabled: false
+      height: 134
+      id: node-table-formatter
+      position:
+        x: 1861.433025491653
+        y: 318.2857142857143
+      positionAbsolute:
+        x: 1861.433025491653
+        y: 318.2857142857143
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - node-table-formatter
+          - text
+        desc: Write a grounded plain-English summary per graph.
+        model:
+          completion_params:
+            temperature: 0.1
+          mode: chat
+          name: gemini-2.5-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-summary
+          role: system
+          text: "Write plain-English summaries of charts from verified data only.{{#context#}}\n\
+            \nRULES:\nA. Cite only values present in the audited JSON. No rounding.\n\
+            B. UNREADABLE values: state \"The value for [label] could not be read.\"\
+            \nC. No causal claims unless the chart annotates a reason.\nD. Flagged\
+            \ values: write \"approximately {value}\".\nE. graphs_found=0: write \"\
+            No charts were detected.\"\n\nFORMAT PER GRAPH:\n**Graph {index} — {title}\
+            \ ({type})**\n{2-4 sentences: highest, lowest, pattern, unreadable notes}\n\
+            Confidence: High | Medium | Low\n  High = all readable, no warnings\n\
+            \  Medium = some flagged or approximate\n  Low = multiple UNREADABLE or\
+            \ audit warnings\n"
+        - id: user-summary
+          role: user
+          text: 'Audited JSON:
+
+            {{#node-fact-checker.text#}}
+
+
+            Formatted tables:
+
+            {{#node-table-formatter.text#}}
+
+
+            Write the grounded summary for each graph.
+
+            '
+        selected: false
+        title: Summary writer
+        type: llm
+        variables:
+        - value_selector:
+          - node-fact-checker
+          - text
+          variable: audited_json
+        - value_selector:
+          - node-table-formatter
+          - text
+          variable: formatted_tables
+        vision:
+          enabled: false
+      height: 134
+      id: node-summary-writer
+      position:
+        x: 2165.1669614332777
+        y: 318.2857142857143
+      positionAbsolute:
+        x: 2165.1669614332777
+        y: 318.2857142857143
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        desc: Merge tables and summary into the final structured report.
+        selected: false
+        template: '# Graph Extraction Report
+
+
+          > **File(s) processed:** {{file_names}}
+
+
+          ---
+
+
+          ## Extracted Data
+
+
+          {{tables}}
+
+
+          ---
+
+
+          ## Summary
+
+
+          {{summary}}
+
+
+          ---
+
+
+          *All values are extracted directly from the uploaded file.
+
+          Values shown as — could not be read from the image.
+
+          Values marked with † may be approximate.*
+
+          '
+        title: Output template
+        type: template-transform
+        variables:
+        - value_selector:
+          - node-file-classifier
+          - file_names
+          variable: file_names
+        - value_selector:
+          - node-table-formatter
+          - text
+          variable: tables
+        - value_selector:
+          - node-summary-writer
+          - text
+          variable: summary
+      height: 98
+      id: node-output-template
+      position:
+        x: 2462.595467362742
+        y: 318.2857142857143
+      positionAbsolute:
+        x: 2462.595467362742
+        y: 318.2857142857143
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        desc: Workflow end. Returns the verified graph extraction report.
+        outputs:
+        - name: report
+          type: string
+          value_selector:
+          - node-output-template
+          - output
+          variable: result
+        selected: false
+        title: End
+        type: end
+      height: 134
+      id: node-end
+      position:
+        x: 2767.5904893067996
+        y: 318.2857142857143
+      positionAbsolute:
+        x: 2767.5904893067996
+        y: 318.2857142857143
+      selected: false
+      type: custom
+      width: 244
+    viewport:
+      x: -241.23620434221243
+      y: 162.75501864780142
+      zoom: 0.6120379746438538
