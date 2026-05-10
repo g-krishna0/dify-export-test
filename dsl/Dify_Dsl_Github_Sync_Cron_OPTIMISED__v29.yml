@@ -176,7 +176,7 @@ workflow:
         title: Start
         type: start
         variables: []
-      height: 53
+      height: 54
       id: start
       position:
         x: 30
@@ -332,7 +332,7 @@ workflow:
           - GITHUB_BRANCH
           value_type: string
           variable: GITHUB_BRANCH
-      height: 209
+      height: 210
       id: get_all_apps
       position:
         x: 330
@@ -340,7 +340,7 @@ workflow:
       positionAbsolute:
         x: 330
         y: 300
-      selected: false
+      selected: true
       sourcePosition: right
       targetPosition: left
       type: custom
@@ -349,7 +349,7 @@ workflow:
         desc: ''
         error_handle_mode: continue-on-error
         height: 297
-        is_parallel: false
+        is_parallel: true
         iterator_input_type: array[object]
         iterator_selector:
         - get_all_apps
@@ -358,7 +358,7 @@ workflow:
         - sync_one_app
         - result
         output_type: array[object]
-        parallel_nums: 1
+        parallel_nums: 2
         selected: false
         start_node_id: iter_nodestart0
         title: Iteration — filtered apps only, parallel_nums=2
@@ -366,16 +366,16 @@ workflow:
       height: 297
       id: iter_node
       position:
-        x: 630
-        y: 282
+        x: 586.9444444444443
+        y: 1.444444444444514
       positionAbsolute:
-        x: 630
-        y: 282
+        x: 586.9444444444443
+        y: 1.444444444444514
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
-      width: 412
+      width: 505
       zIndex: 1
     - data:
         desc: ''
@@ -391,8 +391,8 @@ workflow:
         x: 24
         y: 68
       positionAbsolute:
-        x: 654
-        y: 350
+        x: 610.9444444444443
+        y: 69.44444444444451
       selectable: false
       sourcePosition: right
       targetPosition: left
@@ -530,15 +530,15 @@ workflow:
           - item
           value_type: object
           variable: app
-      height: 209
+      height: 210
       id: sync_one_app
       parentId: iter_node
       position:
         x: 94
         y: 68
       positionAbsolute:
-        x: 724
-        y: 350
+        x: 680.9444444444443
+        y: 69.44444444444451
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -639,14 +639,14 @@ workflow:
           - sync_state_sha
           value_type: string
           variable: sync_state_sha
-      height: 225
+      height: 226
       id: update_sync_state
       position:
-        x: 1050
-        y: 300
+        x: 1161.111111111111
+        y: 156.94444444444446
       positionAbsolute:
-        x: 1050
-        y: 300
+        x: 1161.111111111111
+        y: 156.94444444444446
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -691,11 +691,11 @@ workflow:
       height: 220
       id: end_node
       position:
-        x: 1350
-        y: 300
+        x: 1436.111111111111
+        y: 315.27777777777777
       positionAbsolute:
-        x: 1350
-        y: 300
+        x: 1436.111111111111
+        y: 315.27777777777777
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -715,8 +715,8 @@ workflow:
         x: 24
         y: 68
       positionAbsolute:
-        x: 654
-        y: 350
+        x: 610.9444444444443
+        y: 69.44444444444451
       selectable: false
       sourcePosition: right
       targetPosition: left
@@ -724,6 +724,6 @@ workflow:
       width: 44
       zIndex: 1002
     viewport:
-      x: -647.84
-      y: -47.69999999999999
-      zoom: 0.72
+      x: -262.8314057907403
+      y: -29.295127509079975
+      zoom: 0.7759678644314434
