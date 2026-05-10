@@ -1,0 +1,1049 @@
+app:
+  description: Upload a PDF. The workflow downloads it from Dify's signed URL, extracts
+    every table using pdfplumber (zero vision tokens — handles 100+ pages without
+    hitting token limits), with automatic fallback to vision-OCR for scanned PDFs.
+    Outputs clean Markdown tables, a page index, and a plain-English summary.
+  icon: 📋
+  icon_background: '#E8F5E9'
+  mode: workflow
+  name: Table Data Extractor — PDF v6
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .PDF
+      - .DOCX
+      - .XLSX
+      - .XLS
+      - .CSV
+      allowed_file_types:
+      - document
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 5
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: edge-downloader-extractor
+      source: node-file-downloader
+      sourceHandle: source
+      target: node-table-extractor
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: edge-ocr-splitter
+      source: node-ocr-extractor
+      sourceHandle: source
+      target: node-batch-splitter
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: iteration
+      id: edge-splitter-loop
+      source: node-batch-splitter
+      sourceHandle: source
+      target: node-cleanup-loop
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: true
+        sourceType: iteration-start
+        targetType: llm
+      id: edge-loop-formatter
+      source: node-cleanup-loop
+      sourceHandle: source
+      target: node-md-formatter
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: iteration
+        targetType: code
+      id: edge-loop-assembler
+      source: node-cleanup-loop
+      sourceHandle: source
+      target: node-md-assembler
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: edge-assembler-index
+      source: node-md-assembler
+      sourceHandle: source
+      target: node-index-builder
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: edge-index-summary
+      source: node-index-builder
+      sourceHandle: source
+      target: node-summary-writer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: template-transform
+      id: edge-summary-template
+      source: node-summary-writer
+      sourceHandle: source
+      target: node-output-template
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: template-transform
+        targetType: end
+      id: edge-template-end
+      source: node-output-template
+      sourceHandle: source
+      target: node-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: edge-extractor-splitter-direct
+      source: node-table-extractor
+      sourceHandle: source
+      target: node-batch-splitter
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: llm
+      id: edge-extractor-ocr-direct
+      source: node-table-extractor
+      sourceHandle: source
+      target: node-ocr-extractor
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: edge-start-downloader
+      source: node-start
+      sourceHandle: source
+      target: node-file-downloader
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: iteration-start
+        targetType: llm
+      id: node-cleanup-loopstart0-source-node-md-formatter-target
+      source: node-cleanup-loopstart0
+      sourceHandle: source
+      target: node-md-formatter
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    nodes:
+    - data:
+        desc: Entry point. Accepts PDF files only.
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - allowed_file_extensions:
+          - .PDF
+          allowed_file_types:
+          - document
+          allowed_file_upload_methods:
+          - local_file
+          label: input_file
+          max_length: 5
+          options: []
+          required: true
+          type: file-list
+          variable: input_file
+      height: 118
+      id: node-start
+      position:
+        x: 30
+        y: 284
+      positionAbsolute:
+        x: 30
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        code: "import os, re, tempfile, urllib.request, urllib.error\n\ndef get_attr(f,\
+          \ *keys):\n    for k in keys:\n        try:\n            v = getattr(f,\
+          \ k, None)\n            if v is not None:\n                return str(v)\n\
+          \        except Exception:\n            pass\n    if isinstance(f, dict):\n\
+          \        for k in keys:\n            if f.get(k) is not None:\n        \
+          \        return str(f[k])\n    return \"\"\n\ndef main(input_files) -> dict:\n\
+          \    files = (\n        input_files if isinstance(input_files, list)\n \
+          \       else ([input_files] if input_files else [])\n    )\n\n    local_paths\
+          \ = []\n    file_names  = []\n    errors      = []\n\n    for f in files:\n\
+          \        name = get_attr(f, \"filename\", \"name\") or \"uploaded.pdf\"\n\
+          \        url  = get_attr(f, \"url\", \"remote_url\", \"download_url\",\n\
+          \                        \"local_path\", \"path\")\n\n        if not url:\n\
+          \            errors.append(f\"{name}: no URL found\")\n            continue\n\
+          \n        # Already a real local path\n        if url.startswith(\"/\")\
+          \ and os.path.exists(url):\n            local_paths.append(url)\n      \
+          \      file_names.append(name)\n            continue\n\n        safe_name\
+          \ = re.sub(r'[^\\w.\\-]', '_', name)\n        tmp_path  = os.path.join(tempfile.gettempdir(),\
+          \ safe_name)\n\n        try:\n            req = urllib.request.Request(\n\
+          \                url, headers={\"User-Agent\": \"DifyWorkflow/1.0\"}\n \
+          \           )\n            with urllib.request.urlopen(req, timeout=60)\
+          \ as resp, \\\n                 open(tmp_path, \"wb\") as fp:\n        \
+          \        fp.write(resp.read())\n\n            if not os.path.exists(tmp_path)\
+          \ or os.path.getsize(tmp_path) == 0:\n                errors.append(f\"\
+          {name}: downloaded file is empty\")\n                continue\n\n      \
+          \      local_paths.append(tmp_path)\n            file_names.append(name)\n\
+          \n        except urllib.error.HTTPError as e:\n            errors.append(f\"\
+          {name}: HTTP {e.code} — {e.reason}\")\n        except urllib.error.URLError\
+          \ as e:\n            errors.append(f\"{name}: URL error — {e.reason}\")\n\
+          \        except Exception as e:\n            errors.append(f\"{name}: {e}\"\
+          )\n\n    return {\n        \"local_paths\":     \"\\n\".join(local_paths),\n\
+          \        \"file_names\":      \", \".join(file_names),\n        \"file_count\"\
+          :      str(len(local_paths)),\n        \"download_errors\": \"; \".join(errors)\
+          \ if errors else \"none\",\n    }\n"
+        code_language: python3
+        desc: Download Dify signed-URL PDF to /tmp for pdfplumber.
+        outputs:
+          download_errors:
+            children: null
+            type: string
+          file_count:
+            children: null
+            type: string
+          file_names:
+            children: null
+            type: string
+          local_paths:
+            children: null
+            type: string
+        selected: false
+        title: File downloader
+        type: code
+        variables:
+        - value_selector:
+          - node-start
+          - input_file
+          value_type: array[file]
+          variable: input_files
+      height: 98
+      id: node-file-downloader
+      position:
+        x: 334
+        y: 284
+      positionAbsolute:
+        x: 334
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        code: "import json, re\n\ndef clean(val):\n    if val is None:\n        return\
+          \ \"\"\n    return re.sub(r'\\s+', ' ', str(val)).strip()\n\ndef auto_headers(raw):\n\
+          \    return [clean(h) if clean(h) else f\"Column {i+1}\" for i, h in enumerate(raw)]\n\
+          \ndef table_record(page_num, idx, headers, rows, source):\n    return {\n\
+          \        \"table_index\": idx,\n        \"page\":        page_num,\n   \
+          \     \"source_file\": source,\n        \"headers\":     headers,\n    \
+          \    \"rows\":        rows,\n        \"row_count\":   len(rows),\n     \
+          \   \"col_count\":   len(headers),\n    }\n\ndef main(local_paths: str,\
+          \ file_names: str) -> dict:\n    paths = [p.strip() for p in local_paths.split(\"\
+          \\n\") if p.strip()]\n    names = [n.strip() for n in file_names.split(\"\
+          ,\")   if n.strip()]\n\n    import pdfplumber\n\n    all_tables  = []\n\
+          \    total_pages = 0\n    errors      = []\n\n    for i, path in enumerate(paths):\n\
+          \        fname = names[i] if i < len(names) else f\"file_{i+1}\"\n\n   \
+          \     import os\n        if not os.path.exists(path):\n            errors.append(f\"\
+          {fname}: not found at '{path}'\")\n            continue\n\n        try:\n\
+          \            with pdfplumber.open(path) as pdf:\n                total_pages\
+          \ += len(pdf.pages)\n                tbl_idx      = len(all_tables)\n\n\
+          \                for pg_num, page in enumerate(pdf.pages, 1):\n        \
+          \            # Pass 1: strict line strategy\n                    raw = page.extract_tables({\n\
+          \                        \"vertical_strategy\":     \"lines_strict\",\n\
+          \                        \"horizontal_strategy\":   \"lines_strict\",\n\
+          \                        \"snap_tolerance\":         3,\n              \
+          \          \"join_tolerance\":         3,\n                        \"edge_min_length\"\
+          :        3,\n                        \"min_words_vertical\":     1,\n  \
+          \                      \"min_words_horizontal\":   1,\n                \
+          \        \"keep_blank_chars\":       False,\n                        \"\
+          text_tolerance\":         3,\n                        \"intersection_tolerance\"\
+          : 3,\n                    })\n                    # Pass 2: text fallback\
+          \ for borderless tables\n                    if not raw:\n             \
+          \           raw = page.extract_tables({\n                            \"\
+          vertical_strategy\":   \"text\",\n                            \"horizontal_strategy\"\
+          : \"text\",\n                        })\n\n                    for t in\
+          \ (raw or []):\n                        if not t:\n                    \
+          \        continue\n                        tbl_idx += 1\n              \
+          \          headers   = auto_headers(t[0])\n                        data_rows\
+          \ = []\n                        for row in t[1:]:\n                    \
+          \        cells = [clean(c) for c in row]\n                            while\
+          \ len(cells) < len(headers):\n                                cells.append(\"\
+          \")\n                            data_rows.append(cells[:len(headers)])\n\
+          \                        all_tables.append(\n                          \
+          \  table_record(pg_num, tbl_idx, headers, data_rows, fname)\n          \
+          \              )\n        except Exception as e:\n            errors.append(f\"\
+          {fname}: {e}\")\n\n    return {\n        \"extracted_json\":    json.dumps({\n\
+          \            \"tables_found\":      len(all_tables),\n            \"total_pages\"\
+          :       total_pages,\n            \"extraction_errors\": errors,\n     \
+          \       \"tables\":            all_tables,\n        }, ensure_ascii=False),\n\
+          \        \"tables_found\":      str(len(all_tables)),\n        \"total_pages\"\
+          :       str(total_pages),\n        \"extraction_errors\": \"; \".join(errors)\
+          \ if errors else \"none\",\n    }\n"
+        code_language: python3
+        desc: Extract all tables from PDF using pdfplumber. Zero vision tokens.
+        outputs:
+          extracted_json:
+            children: null
+            type: string
+          extraction_errors:
+            children: null
+            type: string
+          tables_found:
+            children: null
+            type: string
+          total_pages:
+            children: null
+            type: string
+        selected: false
+        title: Table extractor (no vision)
+        type: code
+        variables:
+        - value_selector:
+          - node-file-downloader
+          - local_paths
+          value_type: string
+          variable: local_paths
+        - value_selector:
+          - node-file-downloader
+          - file_names
+          value_type: string
+          variable: file_names
+      height: 98
+      id: node-table-extractor
+      position:
+        x: 638
+        y: 284
+      positionAbsolute:
+        x: 638
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 'Vision-based table extraction for scanned / image PDFs. Outputs Markdown
+          tables directly — no JSON overhead. Only triggered when pdfplumber finds
+          zero tables.
+
+          '
+        model:
+          completion_params:
+            max_tokens: 8192
+            temperature: 0
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-ocr
+          role: system
+          text: 'You are a table extraction engine for scanned documents.
+
+            The uploaded file is a scanned PDF — no text layer exists.
+
+            Use vision to read every table on every page.
+
+
+            ══ OUTPUT: MARKDOWN ONLY ══
+
+            No JSON. No prose. No code fences.
+
+
+            For each table found:
+
+
+            #### Table {n}: {title_if_visible} (Page {page_number})
+
+
+            | Header 1 | Header 2 | … |
+
+            |----------|----------|---|
+
+            | value    | value    | … |
+
+
+            CELL RULES:
+
+            - Unreadable / blurry cell → —
+
+            - Merged cell (horizontal) → repeat value, append (merged) once
+
+            - Merged cell (vertical)   → use ↑ in continuation rows
+
+            - Empty cell               → blank (spaces between pipes)
+
+            - Numbers → copy exactly: preserve %, $, commas, decimals, units
+
+
+            After all tables on a page:
+
+            <!-- page {N}: {k} table(s) found -->
+
+
+            If a page has no tables:
+
+            <!-- page {N}: no tables -->
+
+
+            If the entire document has no tables:
+
+            > ℹ No tables detected — document may be a form, image, or diagram.
+
+            '
+        - id: user-ocr
+          role: user
+          text: 'File: {{#node-file-downloader.file_names#}}
+
+            Pages: {{#node-table-extractor.total_pages#}}
+
+
+            Extract ALL tables from ALL pages. Output Markdown only.
+
+            '
+        selected: false
+        title: OCR table extractor (scanned PDF)
+        type: llm
+        variables:
+        - value_selector:
+          - node-file-downloader
+          - file_names
+          variable: file_names
+        - value_selector:
+          - node-table-extractor
+          - total_pages
+          variable: total_pages
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - node-start
+            - input_file
+          enabled: true
+      height: 134
+      id: node-ocr-extractor
+      position:
+        x: 942
+        y: 284
+      positionAbsolute:
+        x: 942
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\nBATCH_SIZE = 15\n\ndef main(\n    extracted_json: str,\n\
+          \    ocr_markdown:   str,\n) -> dict:\n    \"\"\"\n    Two inputs — exactly\
+          \ one will be populated:\n      extracted_json  → text-based path (pdfplumber\
+          \ JSON)\n      ocr_markdown    → scanned path (LLM Markdown string)\n\n\
+          \    Scanned detection: if extracted_json has tables_found==0\n    AND the\
+          \ first file type was pdf, treat as scanned.\n    The ocr_markdown input\
+          \ will be populated by the OCR node\n    only when it ran; otherwise it\
+          \ arrives as an empty string.\n    \"\"\"\n\n    # ── OCR PATH: wrap raw\
+          \ Markdown in a pseudo-batch ──────────\n    if ocr_markdown and ocr_markdown.strip():\n\
+          \        synthetic = [{\n            \"batch_index\":  1,\n            \"\
+          tables\":       [],\n            \"is_empty\":     False,\n            \"\
+          ocr_markdown\": ocr_markdown.strip(),\n        }]\n        return {\n  \
+          \          \"batch_array\":     synthetic,\n            \"extraction_path\"\
+          : \"ocr\",\n        }\n\n    # ── TEXT PATH: split JSON into real batches\
+          \ ────────────────\n    try:\n        data = json.loads(extracted_json)\n\
+          \    except Exception:\n        return {\n            \"batch_array\": \
+          \    [{\"batch_index\": 1, \"tables\": [], \"is_empty\": True}],\n     \
+          \       \"extraction_path\": \"error\",\n        }\n\n    tables = data.get(\"\
+          tables\", [])\n\n    if not tables:\n        return {\n            \"batch_array\"\
+          :     [{\"batch_index\": 1, \"tables\": [], \"is_empty\": True}],\n    \
+          \        \"extraction_path\": \"text\",\n        }\n\n    batches = []\n\
+          \    for i in range(0, len(tables), BATCH_SIZE):\n        chunk = tables[i\
+          \ : i + BATCH_SIZE]\n        batches.append({\n            \"batch_index\"\
+          :  len(batches) + 1,\n            \"tables\":       chunk,\n           \
+          \ \"is_empty\":     False,\n            \"ocr_markdown\": \"\",\n      \
+          \  })\n\n    return {\n        \"batch_array\":     batches,\n        \"\
+          extraction_path\": \"text\",\n    }\n"
+        code_language: python3
+        desc: 'Splits text-path JSON into batches of 15, OR wraps OCR Markdown into
+          a single synthetic batch. Returns array[object] for the loop.
+
+          '
+        outputs:
+          batch_array:
+            children: null
+            type: array[object]
+          extraction_path:
+            children: null
+            type: string
+        selected: false
+        title: Batch splitter
+        type: code
+        variables:
+        - value_selector:
+          - node-table-extractor
+          - extracted_json
+          value_type: string
+          variable: extracted_json
+        - value_selector:
+          - node-ocr-extractor
+          - text
+          value_type: string
+          variable: ocr_markdown
+      height: 98
+      id: node-batch-splitter
+      position:
+        x: 1246
+        y: 284
+      positionAbsolute:
+        x: 1246
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        desc: Loop over table batches — one bounded LLM call per batch.
+        error_handle_mode: continue-on-error
+        height: 168
+        is_parallel: false
+        iterator_selector:
+        - node-batch-splitter
+        - batch_array
+        output_selector:
+        - node-md-formatter
+        - text
+        output_type: array[string]
+        parallel_nums: 10
+        selected: false
+        startNodeType: llm
+        start_node_id: node-cleanup-loopstart0
+        title: Batch loop
+        type: iteration
+        width: 254
+      height: 168
+      id: node-cleanup-loop
+      position:
+        x: 1550
+        y: 284
+      positionAbsolute:
+        x: 1550
+        y: 284
+      selected: false
+      type: custom
+      width: 254
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 'Format one batch of pre-extracted table JSON as Markdown. If batch
+          contains ocr_markdown, pass it through unchanged.
+
+          '
+        model:
+          completion_params:
+            max_tokens: 4096
+            temperature: 0
+          mode: chat
+          name: gemini-2.5-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-formatter
+          role: system
+          text: "You are a Markdown table formatter.\n\nYou receive a batch object\
+            \ with one of two shapes:\n\nSHAPE A — text-extracted batch:\n  { \"batch_index\"\
+            : N, \"tables\": [...], \"ocr_markdown\": \"\" }\n  → Render each table\
+            \ in \"tables\" as a Markdown pipe table.\n\nSHAPE B — OCR batch (scanned\
+            \ PDF):\n  { \"batch_index\": 1, \"tables\": [], \"ocr_markdown\": \"\
+            <md string>\" }\n  → Output the ocr_markdown string UNCHANGED. Do not\
+            \ reformat.\n\n══ FORMAT RULES for SHAPE A ══\nFor each table object:\n\
+            \  #### Table {table_index}: {headers[0]} … (Page {page})\n  > \U0001F4DD\
+            \ {notes}   ← only if notes is non-empty\n\n  | H1 | H2 | … |\n  |----|----|----|\n\
+            \  | v  | v  | … |\n\nCELL RULES:\n- Empty \"\"     → blank cell\n- Pipe\
+            \ \"|\"     → replace with ｜\n- Newline      → replace with \" / \"\n\
+            - Numbers      → copy exactly\n\nOutput ONLY Markdown. No JSON. No prose.\
+            \ No code fences.\n"
+        - id: user-formatter
+          role: user
+          text: '{{#node-cleanup-loop.item#}}
+
+            '
+        selected: false
+        title: Markdown formatter (per batch)
+        type: llm
+        variables:
+        - value_selector:
+          - node-cleanup-loop
+          - item
+          variable: batch_item
+        vision:
+          enabled: false
+      height: 134
+      id: node-md-formatter
+      position:
+        x: 1722.5714285714287
+        y: 503.42857142857144
+      positionAbsolute:
+        x: 1722.5714285714287
+        y: 503.42857142857144
+      selected: true
+      type: custom
+      width: 244
+    - data:
+        code: "def main(batch_md_array: list) -> dict:\n    sections = [md.strip()\
+          \ for md in (batch_md_array or []) if md and md.strip()]\n    full = \"\\\
+          n\\n---\\n\\n\".join(sections) if sections else \"> No tables were extracted.\"\
+          \n    return {\n        \"full_markdown\":  full,\n        \"batches_joined\"\
+          : str(len(sections)),\n    }\n"
+        code_language: python3
+        desc: Join per-batch Markdown strings into the final document.
+        outputs:
+          batches_joined:
+            children: null
+            type: string
+          full_markdown:
+            children: null
+            type: string
+        selected: false
+        title: Markdown assembler
+        type: code
+        variables:
+        - value_selector:
+          - node-cleanup-loop
+          - output
+          value_type: array[string]
+          variable: batch_md_array
+      height: 98
+      id: node-md-assembler
+      position:
+        x: 1864
+        y: 284
+      positionAbsolute:
+        x: 1864
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        code: "import re\n\ndef main(\n    full_markdown:     str,\n    tables_found:\
+          \      str,\n    total_pages:       str,\n    file_names:        str,\n\
+          \    file_count:        str,\n    extraction_errors: str,\n    download_errors:\
+          \   str,\n    validate_error:    str,\n    extraction_path:   str,\n) ->\
+          \ dict:\n\n    heading_re = re.compile(\n        r'####\\s+Table\\s+(\\\
+          d+)(?:\\s*:\\s*([^(\\n]+?))?\\s*\\(Page\\s+(\\d+)\\)',\n        re.IGNORECASE\n\
+          \    )\n\n    toc_rows    = []\n    page_counts = {}\n\n    for m in heading_re.finditer(full_markdown):\n\
+          \        idx   = m.group(1)\n        title = (m.group(2) or \"\").strip()\
+          \ or \"—\"\n        page  = m.group(3)\n        toc_rows.append(f\"| {idx}\
+          \ | {page} | {title} |\")\n        page_counts[page] = page_counts.get(page,\
+          \ 0) + 1\n\n    toc = (\n        \"| Table | Page | Title |\\n|-------|------|-------|\\\
+          n\"\n        + \"\\n\".join(toc_rows)\n    ) if toc_rows else \"> No table\
+          \ headings detected.\"\n\n    page_dist = (\n        \"| Page | Tables |\\\
+          n|------|--------|\\n\"\n        + \"\\n\".join(\n            f\"| {pg}\
+          \ | {cnt} |\"\n            for pg, cnt in sorted(page_counts.items(), key=lambda\
+          \ x: int(x[0]))\n        )\n    ) if page_counts else \"> No page data.\"\
+          \n\n    err_parts = []\n    if validate_error and validate_error not in\
+          \ (\"\", \"none\"):\n        err_parts.append(f\"Validation: {validate_error}\"\
+          )\n    if download_errors and download_errors != \"none\":\n        err_parts.append(f\"\
+          Download: {download_errors}\")\n    if extraction_errors and extraction_errors\
+          \ != \"none\":\n        err_parts.append(f\"Extraction: {extraction_errors}\"\
+          )\n    error_block = (\"> ⚠ \" + \" | \".join(err_parts)) if err_parts else\
+          \ \"\"\n\n    path_label = {\n        \"text\": \"pdfplumber (text-based\
+          \ PDF — zero vision tokens)\",\n        \"ocr\":  \"Gemini vision OCR (scanned\
+          \ PDF — vision tokens used)\",\n        \"error\": \"Error — see warnings\
+          \ above\",\n    }.get(extraction_path, extraction_path)\n\n    return {\n\
+          \        \"table_of_contents\":  toc,\n        \"page_distribution\":  page_dist,\n\
+          \        \"error_block\":        error_block,\n        \"global_table_count\"\
+          : tables_found,\n        \"path_label\":         path_label,\n    }\n"
+        code_language: python3
+        desc: Build table-of-contents, page distribution, and error block.
+        outputs:
+          error_block:
+            children: null
+            type: string
+          global_table_count:
+            children: null
+            type: string
+          page_distribution:
+            children: null
+            type: string
+          path_label:
+            children: null
+            type: string
+          table_of_contents:
+            children: null
+            type: string
+        selected: false
+        title: Page index builder
+        type: code
+        variables:
+        - value_selector:
+          - node-md-assembler
+          - full_markdown
+          value_type: string
+          variable: full_markdown
+        - value_selector:
+          - node-table-extractor
+          - tables_found
+          value_type: string
+          variable: tables_found
+        - value_selector:
+          - node-table-extractor
+          - total_pages
+          value_type: string
+          variable: total_pages
+        - value_selector:
+          - node-file-downloader
+          - file_names
+          value_type: string
+          variable: file_names
+        - value_selector:
+          - node-file-downloader
+          - file_count
+          value_type: string
+          variable: file_count
+        - value_selector:
+          - node-table-extractor
+          - extraction_errors
+          value_type: string
+          variable: extraction_errors
+        - value_selector:
+          - node-file-downloader
+          - download_errors
+          value_type: string
+          variable: download_errors
+        - value_selector:
+          - node-batch-splitter
+          - extraction_path
+          value_type: string
+          variable: extraction_path
+      height: 98
+      id: node-index-builder
+      position:
+        x: 2168
+        y: 284
+      positionAbsolute:
+        x: 2168
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - node-md-assembler
+          - full_markdown
+        desc: Write a grounded 2–3 sentence summary per table.
+        model:
+          completion_params:
+            max_tokens: 4096
+            temperature: 0.1
+          mode: chat
+          name: gemini-2.5-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-summary
+          role: system
+          text: 'You receive Markdown tables extracted from a document.
+
+            Write a short plain-English summary for each table.
+
+            {{#context#}}
+
+
+            RULES:
+
+            - Reference only values visible in the Markdown.
+
+            - Blank or — cells: note the value could not be read.
+
+            - No causal claims unless stated in the table.
+
+            - If no tables: write "No tables were detected."
+
+
+            FORMAT per table:
+
+            **Table {index} — {title} (Page {page})**
+
+            {2–3 sentences: columns, rows, key values, patterns, blanks.}
+
+            Confidence: High | Medium | Low
+
+            '
+        - id: user-summary
+          role: user
+          text: '{{#node-md-assembler.full_markdown#}}
+
+            '
+        selected: false
+        title: Summary writer
+        type: llm
+        variables:
+        - value_selector:
+          - node-md-assembler
+          - full_markdown
+          variable: full_markdown
+        vision:
+          enabled: false
+      height: 134
+      id: node-summary-writer
+      position:
+        x: 2472
+        y: 284
+      positionAbsolute:
+        x: 2472
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        desc: Assemble all upstream outputs into the final report.
+        selected: false
+        template: '# Table Extraction Report
+
+
+          > **File(s):** {{file_names}}
+
+          > **Extraction path:** {{path_label}}
+
+
+          {{error_block}}
+
+
+          ---
+
+
+          ## Document Overview
+
+
+          | Metric                 | Value                  |
+
+          |------------------------|------------------------|
+
+          | Files processed        | {{file_count}}         |
+
+          | Pages scanned          | {{total_pages}}        |
+
+          | Total tables extracted | {{global_table_count}} |
+
+          | LLM batches used       | {{batches_joined}}     |
+
+
+          ---
+
+
+          ## Table of Contents
+
+
+          {{table_of_contents}}
+
+
+          ---
+
+
+          ## Tables by Page
+
+
+          {{page_distribution}}
+
+
+          ---
+
+
+          ## Extracted Tables
+
+
+          {{full_markdown}}
+
+
+          ---
+
+
+          ## Summary
+
+
+          {{summary}}
+
+
+          ---
+
+
+          *All values copied directly from source document.
+
+          Blank cells indicate empty source cells.
+
+          — indicates a cell that could not be read.*
+
+          '
+        title: Output template
+        type: template-transform
+        variables:
+        - value_selector:
+          - node-file-downloader
+          - file_names
+          variable: file_names
+        - value_selector:
+          - node-file-downloader
+          - file_count
+          variable: file_count
+        - value_selector:
+          - node-table-extractor
+          - total_pages
+          variable: total_pages
+        - value_selector:
+          - node-index-builder
+          - global_table_count
+          variable: global_table_count
+        - value_selector:
+          - node-md-assembler
+          - batches_joined
+          variable: batches_joined
+        - value_selector:
+          - node-index-builder
+          - table_of_contents
+          variable: table_of_contents
+        - value_selector:
+          - node-index-builder
+          - page_distribution
+          variable: page_distribution
+        - value_selector:
+          - node-index-builder
+          - error_block
+          variable: error_block
+        - value_selector:
+          - node-index-builder
+          - path_label
+          variable: path_label
+        - value_selector:
+          - node-md-assembler
+          - full_markdown
+          variable: full_markdown
+        - value_selector:
+          - node-summary-writer
+          - text
+          variable: summary
+      height: 98
+      id: node-output-template
+      position:
+        x: 2776
+        y: 284
+      positionAbsolute:
+        x: 2776
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        desc: Return the verified Markdown extraction report.
+        outputs:
+        - name: report
+          type: string
+          value_selector:
+          - node-output-template
+          - output
+          variable: result
+        selected: false
+        title: End
+        type: end
+      height: 134
+      id: node-end
+      position:
+        x: 3080
+        y: 284
+      positionAbsolute:
+        x: 3080
+        y: 284
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: node-cleanup-loopstart0
+      parentId: node-cleanup-loop
+      position:
+        x: 60
+        y: 60
+      positionAbsolute:
+        x: 1610
+        y: 344
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    viewport:
+      x: 333.30000000000007
+      y: 182.9
+      zoom: 0.7
