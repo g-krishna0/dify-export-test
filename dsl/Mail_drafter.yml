@@ -1,0 +1,291 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: Mail_drafter
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1778135765493-source-1778135952843-target
+      selected: false
+      source: '1778135765493'
+      sourceHandle: source
+      target: '1778135952843'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: 1778135952843-source-1778136010240-target
+      selected: false
+      source: '1778135952843'
+      sourceHandle: source
+      target: '1778136010240'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1778136010240-source-1778136159321-target
+      selected: false
+      source: '1778136010240'
+      sourceHandle: source
+      target: '1778136159321'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: recipient_name
+          max_length: 186
+          options: []
+          required: false
+          type: text-input
+          variable: recipient_name
+        - label: email_template
+          max_length: 10000
+          options: []
+          required: true
+          type: paragraph
+          variable: email_template
+        - label: context_data
+          max_length: 10000
+          options: []
+          required: true
+          type: paragraph
+          variable: context_data
+      height: 141
+      id: '1778135765493'
+      position:
+        x: 80
+        y: 229
+      positionAbsolute:
+        x: 80
+        y: 229
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1778135765493'
+          - email_template
+        desc: 'Purpose: Parses the boilerplate email template to identify dynamically
+          required fields (e.g., [Name], {{Date}}).
+
+          Input: email_template from Input_ReceivePayload.
+
+          Output: A comma-separated string or JSON list of required variables.
+
+          Logic/Assumption: LLM is instructed to ignore conversational text and only
+          extract the exact placeholder syntax.'
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: cd245f89-584d-4434-b1fb-19b5dfe0d09b
+          role: system
+          text: 'You are an analytical parser. Read the user''s email template and
+            identify every variable or placeholder that needs to be filled (e.g.,
+            words inside brackets like [Name] or {date} etc.).
+
+            Output ONLY a comma-separated list of these required variables. Do not
+            include conversational text.
+
+            '
+        - id: 7bbc97f1-775e-40c7-b10b-f4a596c8223e
+          role: user
+          text: '{{#context#}}'
+        selected: false
+        title: LLM_ExtractVariables
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 261
+      id: '1778135952843'
+      position:
+        x: 384
+        y: 229
+      positionAbsolute:
+        x: 384
+        y: 229
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 'Purpose: Maps the unstructured context data to the required template
+          variables and generates the final email string.
+
+          Input: email_template, context_data, recipient_name, and the variable list
+          from LLM_ExtractVariables.
+
+          Output: The final formatted email string.
+
+          Logic/Assumption: Enforces strict graceful failure. If a required variable
+          is not found in the context, it must output [MISSING: VariableName]. Must
+          not hallucinate or add markdown.'
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 8161da97-8d7b-4a3d-a687-fe15bc4a7736
+          role: system
+          text: 'You are a professional corporate email drafter. Your task is to fill
+            in the provided ''Email Template'' using the provided ''Context Data''.
+
+
+            Rules:
+
+            1. Recipient Name is: {{#1778135765493.recipient_name#}}
+
+            2. The required placeholders to fill are: {{#1778135952843.text#}}
+
+            3. Map the Context Data to the placeholders accurately.
+
+            4. If a required piece of data is completely missing from the Context
+            Data, insert exactly "[MISSING: VariableName]".
+
+            5. Output ONLY the final drafted email body. Do not include markdown blocks,
+            pleasantries, or subject lines unless requested.'
+        - id: 5be1d1e7-670c-42c7-82b3-31bfc3332cc9
+          role: user
+          text: 'Context Data:
+
+            {{#1778135765493.context_data#}}
+
+
+            Email Template:
+
+            {{#1778135765493.email_template#}}'
+        selected: true
+        title: LLM_DraftEmail
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 293
+      id: '1778136010240'
+      position:
+        x: 688
+        y: 229
+      positionAbsolute:
+        x: 688
+        y: 229
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1778136010240'
+          - text
+          value_type: string
+          variable: result
+        selected: false
+        title: End
+        type: end
+      height: 90
+      id: '1778136159321'
+      position:
+        x: 992
+        y: 229
+      positionAbsolute:
+        x: 992
+        y: 229
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 116.93855181539351
+      y: 9.503398693355791
+      zoom: 0.6096026862857385
