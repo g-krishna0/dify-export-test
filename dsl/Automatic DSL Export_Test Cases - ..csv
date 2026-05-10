@@ -1,0 +1,43 @@
+UUID,Test Case Objective,Steps,Expected Outcome,Story,Precondition,Priority,Component,Automation status,Type of testing,Covered Acceptance Criteria,Execution Intent,Scenario type,Test Case Validation Status,Story ID
+92a73c71-79da-4789-a2b0-fa7ad49c207a,Verify that the script successfully exports and commits the updated DSL file to GitHub when changes are detected.,"1. Ensure the target Dify application has been updated since the last backup stored in the GitHub repository.
+2. Trigger the scheduled cron job to execute the automation script.
+3. Observe the script's execution logs.
+4. Check the designated GitHub repository branch for new commits.",1. The Dify application's current configuration is confirmed to be different from the version represented by the DSL file in the GitHub repository.,Exporting DSL file automatically,"1. A version of the Dify application's DSL file exists in the target GitHub repository. 2. The automation script is configured with valid Dify API credentials and GitHub access tokens. 3. The Dify application has been modified, causing its current DSL to differ from the version in the GitHub repository.",High,Automation Script,Automatable,"Positive Testing, Error Handling Testing","Given the target Dify application has been updated since the last backup
+When the scheduled cron time is reached
+Then the script must export the latest DSL YAML file from Dify
+And it must push a new commit containing the updated YAML file to the designated GitHub repository branch
+And it must log a success message with the lines changed.
+Then the payload must only include the .yml DSL configuration file
+And it must explicitly exclude any generated Python scripts or unrelated application files.",Smoke Testing,Functional,Valid,GLJAI-5092
+62c88b1f-b70b-415f-bc4a-b6613dc68bd9,"Verify that the script does not create a new commit when the Dify DSL is identical to the version in GitHub, preventing repository spam.","1. Ensure the Dify application's DSL is identical to the version currently stored in the designated GitHub repository branch.
+2. Trigger the scheduled cron job to execute the automation script.
+3. Observe the script's execution logs.
+4. Check the designated GitHub repository branch for any new commits after the script has run.",1. The system state is confirmed where the Dify DSL content matches the content of the DSL file in the target GitHub branch.,Exporting DSL file automatically,The automation script is deployed and configured with valid Dify and GitHub credentials. A cron job is set up to trigger the script. The Dify application's DSL content is identical to the version in the target GitHub repository branch.,High,Automation Script,Automatable,"Positive Testing, Negative Testing, Edge case Testing","Given the automation script is deployed on a server with valid credentials
+And the Dify application's DSL is completely identical to the version currently stored in GitHub
+When the scheduled cron time is reached
+Then the script must export the latest DSL from Dify
+And it must compare the file to the GitHub version
+But it must NOT push a new commit to the repository
+And it must log a message indicating no changes were required.",Sanity Testing,Functional,Valid,GLJAI-5092
+6af544c8-7b72-4909-a587-3534c89fba68,Verify that the commit payload pushed to GitHub contains only the DSL YAML file and no other file types.,"1. Create temporary, unrelated files (e.g., test.log, config.py) in the script's local working directory.
+2. Ensure the Dify application has been updated since the last backup.
+3. Trigger the scheduled cron job to execute the automation script.
+4. Inspect the contents of the new commit pushed to the GitHub repository.",1. The files `test.log` and `config.py` are present in the script's local working directory.,Exporting DSL file automatically,"The automation script is deployed and configured with valid GitHub credentials. The Dify application is running, accessible, and has been updated since the last successful backup. The scheduled cron job for the script is enabled.",High,Automation Script,Automatable,"Negative Testing, Error Handling Testing","Given the automation script detects a change in the Dify DSL
+When the script prepares the commit payload for GitHub
+Then the payload must only include the .yml DSL configuration file
+And it must explicitly exclude any generated Python scripts or unrelated application files.",Sanity Testing,Functional,Valid,GLJAI-5092
+83d5243a-0b20-4969-afb3-ddde2b204bcb,"Verify that the script halts and logs an authentication failure when using an invalid Dify access token, preventing any attempt to push to GitHub.","1. Given the automation script is deployed on a server.
+2. Configure the script with an expired or invalid DIFY_ACCESS_TOKEN.
+3. When the scheduled cron time is reached.
+4. Then the script attempts to connect to Dify.
+5. And the script catches the 401 Unauthorized error.",1. The automation script is successfully deployed and accessible in the server environment.,Exporting DSL file automatically,"The automation script is deployed on a server with a configured cron schedule. All required configurations (e.g., GitHub repository and token) are valid. The DIFY_ACCESS_TOKEN environment variable is intentionally set to an invalid or expired value.",High,Authentication,Automatable,"Negative Testing, Error Handling Testing","Given the automation script is deployed on a server
+But the configured DIFY_ACCESS_TOKEN is expired or invalid
+When the scheduled cron time is reached
+Then the script must attempt to connect to Dify
+And it must catch the 401 Unauthorized error
+And it must log an authentication failure
+And it must halt the process without attempting to push any data to GitHub.",Regression Testing,Functional,Valid,GLJAI-5092
+a273499f-9cbf-4fbf-9abc-5f117d6b3f42,"Verify that the automation script ignores changes to other, non-DSL files in the same directory.","1. Set up the automation script to monitor a specific Dify DSL file within a directory.
+2. In the same directory, create or modify a different file (e.g., 'test.txt').
+3. Save the 'test.txt' file.
+4. Allow the automation script to run its detection cycle and observe its behavior.",1. The automation script is successfully initialized and is actively monitoring the target Dify DSL file for changes.,Exporting DSL file automatically,The automation script is running and configured to monitor only files matching the Dify DSL pattern/name in a directory containing other files.,Medium,DSL Automation Script,Automatable,Negative Testing,Given the automation script detects a change in the Dify DSL,Regression Testing,Functional,Valid,GLJAI-5092
