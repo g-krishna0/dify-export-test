@@ -10,7 +10,11 @@ app:
   mode: workflow
   name: Graph Data Extractor
   use_icon_as_answer_icon: false
-dependencies: []
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
 kind: app
 version: 0.3.1
 workflow:
@@ -25,18 +29,12 @@ workflow:
       - .GIF
       - .WEBP
       - .SVG
-      - .PDF
-      - .DOCX
-      - .XLSX
-      - .PPTX
-      - .CSV
       allowed_file_types:
       - image
-      - document
       allowed_file_upload_methods:
       - local_file
       - remote_url
-      enabled: true
+      enabled: false
       fileUploadConfig:
         audio_file_size_limit: 50
         batch_count_limit: 5
@@ -68,50 +66,74 @@ workflow:
   graph:
     edges:
     - data:
-        isInIteration: false
         isInLoop: false
-        sourceType: start
-        targetType: tool
-      id: node-start-source-1778134599931-target
-      source: node-start
+        sourceType: llm
+        targetType: llm
+      id: edge-vision-to-checker
+      source: node-vision-extractor
       sourceHandle: source
-      target: '1778134599931'
+      target: node-fact-checker
       targetHandle: target
       type: custom
-      zIndex: 0
     - data:
-        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: edge-checker-to-formatter
+      source: node-fact-checker
+      sourceHandle: source
+      target: node-table-formatter
+      targetHandle: target
+      type: custom
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: edge-formatter-to-summary
+      source: node-table-formatter
+      sourceHandle: source
+      target: node-summary-writer
+      targetHandle: target
+      type: custom
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: template-transform
+      id: edge-summary-to-template
+      source: node-summary-writer
+      sourceHandle: source
+      target: node-output-template
+      targetHandle: target
+      type: custom
+    - data:
         isInLoop: false
         sourceType: template-transform
         targetType: end
-      id: node-output-template-source-1778134631040-target
+      id: edge-template-to-end
       source: node-output-template
       sourceHandle: source
-      target: '1778134631040'
+      target: node-end
       targetHandle: target
       type: custom
-      zIndex: 0
     - data:
-        isInIteration: false
         isInLoop: false
-        sourceType: tool
+        sourceType: start
         targetType: code
-      id: 1778134599931-source-node-ocr-parser-target
-      source: '1778134599931'
+      id: node-start-source-node-file-classifier-target
+      source: node-start
       sourceHandle: source
-      target: node-ocr-parser
+      target: node-file-classifier
       targetHandle: target
       type: custom
       zIndex: 0
     - data:
-        isInIteration: false
         isInLoop: false
         sourceType: code
-        targetType: template-transform
-      id: node-ocr-parser-source-node-output-template-target
-      source: node-ocr-parser
+        targetType: llm
+      id: node-file-classifier-source-node-vision-extractor-target
+      source: node-file-classifier
       sourceHandle: source
-      target: node-output-template
+      target: node-vision-extractor
       targetHandle: target
       type: custom
       zIndex: 0
@@ -138,257 +160,411 @@ workflow:
       height: 150
       id: node-start
       position:
-        x: 537.6222651144641
-        y: 81.54733627877897
+        x: 30
+        y: 275
       positionAbsolute:
-        x: 537.6222651144641
-        y: 81.54733627877897
+        x: 30
+        y: 275
       selected: false
       type: custom
       width: 244
     - data:
-        desc: ''
-        is_team_authorization: true
-        output_schema: null
-        paramSchemas:
-        - auto_generate: null
-          default: null
-          form: llm
-          human_description:
-            en_US: Upload file
-            ja_JP: Upload file
-            pt_BR: Upload file
-            zh_Hans: Upload file
-          label:
-            en_US: select_file
-            ja_JP: select_file
-            pt_BR: select_file
-            zh_Hans: select_file
-          llm_description: Upload file
-          max: null
-          min: null
-          name: select_file
-          options: []
-          placeholder:
-            en_US: ''
-            ja_JP: ''
-            pt_BR: ''
-            zh_Hans: ''
-          precision: null
-          required: true
-          scope: null
-          template: null
-          type: files
-        params:
-          select_file: ''
-        provider_id: 2a48d915-5f63-4cae-bf06-298eb218edc6
-        provider_name: OCR Summarizer
-        provider_type: workflow
-        selected: true
-        title: OCR Summarizer
-        tool_configurations: {}
-        tool_description: 'Multi-format file reader. PDF, OCR images, Excel, TXT,
-          DOC/DOCX, CSV. English and Japanese. File validation: empty, zip disguised,
-          compressed formats blocked.'
-        tool_label: OCR Summarizer
-        tool_name: ocr_wf
-        tool_node_version: '2'
-        tool_parameters:
-          select_file:
-            type: variable
-            value:
-            - node-start
-            - input_file
-        type: tool
-      height: 54
-      id: '1778134599931'
-      position:
-        x: 841.6
-        y: 81.54733627877897
-      positionAbsolute:
-        x: 841.6
-        y: 81.54733627877897
-      selected: true
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 244
-    - data:
-        code: "import json, re\n\ndef parse_charts(clean_text):\n    \"\"\"Parse OCR\
-          \ output into a list of chart dicts.\"\"\"\n    charts = []\n    blocks\
-          \ = re.split(r\"\\s*\\u25b8 Image #\\d+\", clean_text)\n    for block in\
-          \ blocks[1:]:\n        chart = {}\n        header_line = block.strip().split(\"\
-          \\n\")[0]\n        page_m = re.search(r\"Page (\\d+)\", header_line)\n \
-          \       type_m = re.search(r\"\\|\\s*(\\w+)\\s*$\", header_line)\n     \
-          \   chart[\"page\"]       = page_m.group(1) if page_m else \"?\"\n     \
-          \   chart[\"image_type\"] = type_m.group(1).strip() if type_m else \"UNKNOWN\"\
-          \n\n        def field(label):\n            m = re.search(\n            \
-          \    rf\"{label}\\s*:\\s*(.+?)(?=\\n\\s{{4,}}\\w|\\n\\s*\\u25b8|\\Z)\",\n\
-          \                block, re.DOTALL\n            )\n            return m.group(1).strip()\
-          \ if m else \"\"\n\n        chart[\"subject\"]     = field(\"Subject\")\n\
-          \        chart[\"name\"]        = field(\"Name\")\n        chart[\"description\"\
-          ] = field(\"Description\")\n        chart[\"sentiment\"]   = field(\"Sentiment\"\
-          )\n        chart[\"tags\"]        = field(\"Tags\")\n\n        ins_m = re.search(\n\
-          \            r\"Insights\\s*:\\s*\\n(.*?)(?=\\n\\s{4}\\w|\\n\\s*\\u25b8|\\\
-          Z)\",\n            block, re.DOTALL\n        )\n        chart[\"insights\"\
-          ] = re.findall(r\"•\\s*(.+)\", ins_m.group(1)) if ins_m else []\n\n    \
-          \    ti_m = re.search(\n            r\"Text Inside\\s*:\\s*\\n?(.*?)(?=\\\
-          n\\s{4}\\w|\\n\\s*\\u25b8|\\Z)\",\n            block, re.DOTALL\n      \
-          \  )\n        raw_ti = ti_m.group(1).strip() if ti_m else \"\"\n       \
-          \ chart[\"text_inside\"] = \" | \".join(\n            line.strip() for line\
-          \ in raw_ti.splitlines() if line.strip()\n        )\n        charts.append(chart)\n\
-          \    return charts\n\ndef build_table(charts):\n    \"\"\"Build a markdown\
-          \ table from parsed charts.\"\"\"\n    if not charts:\n        return \"\
-          > No charts detected in this document.\"\n\n    lines = []\n\n    # ── Summary\
-          \ table ───────────────────────────────────────\n    lines.append(\"## Charts\
-          \ detected\")\n    lines.append(\"\")\n    lines.append(\"| # | Page | Type\
-          \ | Chart name |\")\n    lines.append(\"|---|------|------|------------|\"\
-          )\n    for i, c in enumerate(charts, 1):\n        chart_type = c[\"subject\"\
-          ].split(\"–\")[0].strip() if \"–\" in c[\"subject\"] else c[\"image_type\"\
-          ]\n        name       = c[\"name\"] if c[\"name\"] else c[\"subject\"]\n\
-          \        lines.append(f\"| {i} | {c['page']} | {chart_type} | {name} |\"\
-          )\n\n    # ── Per-chart detail table ──────────────────────────────\n  \
-          \  lines.append(\"\")\n    lines.append(\"---\")\n    lines.append(\"\"\
-          )\n    lines.append(\"## Chart details\")\n    lines.append(\"\")\n\n  \
-          \  for i, c in enumerate(charts, 1):\n        lines.append(f\"### Chart\
-          \ {i} — {c['subject']}\")\n        lines.append(\"\")\n\n        # Metadata\
-          \ table\n        lines.append(\"| Field | Value |\")\n        lines.append(\"\
-          |-------|-------|\")\n        lines.append(f\"| Page | {c['page']} |\")\n\
-          \        lines.append(f\"| Type | {c['image_type']} |\")\n        desc =\
-          \ c[\"description\"].replace(\"\\n\", \" \").replace(\"|\", \"/\")\n   \
-          \     lines.append(f\"| Description | {desc} |\")\n        if c[\"sentiment\"\
-          ]:\n            lines.append(f\"| Sentiment | {c['sentiment']} |\")\n  \
-          \      if c[\"tags\"]:\n            lines.append(f\"| Tags | {c['tags']}\
-          \ |\")\n        lines.append(\"\")\n\n        # Extracted values\n     \
-          \   if c[\"text_inside\"]:\n            lines.append(\"**Extracted values\
-          \ from chart:**\")\n            lines.append(\"\")\n            lines.append(\"\
-          | Raw text extracted |\")\n            lines.append(\"|--------------------|\"\
-          )\n            for segment in c[\"text_inside\"].split(\" | \"):\n     \
-          \           seg = segment.strip()\n                if seg:\n           \
-          \         lines.append(f\"| {seg} |\")\n            lines.append(\"\")\n\
-          \n        # Insights\n        if c[\"insights\"]:\n            lines.append(\"\
-          **Key insights:**\")\n            lines.append(\"\")\n            lines.append(\"\
-          | # | Insight |\")\n            lines.append(\"|---|---------|\")\n    \
-          \        for j, ins in enumerate(c[\"insights\"], 1):\n                ins_clean\
-          \ = ins.strip().replace(\"|\", \"/\")\n                lines.append(f\"\
-          | {j} | {ins_clean} |\")\n            lines.append(\"\")\n\n        lines.append(\"\
-          ---\")\n        lines.append(\"\")\n\n    return \"\\n\".join(lines)\n\n\
-          def main(raw_text: str, input_files: list) -> dict:\n    # ── File names\
-          \ ──────────────────────────────────────────\n    file_names = \"\"\n  \
-          \  if input_files:\n        names = []\n        for f in input_files:\n\
-          \            name = \"\"\n            if hasattr(f, \"filename\") and f.filename:\n\
-          \                name = str(f.filename)\n            elif hasattr(f, \"\
-          name\") and f.name:\n                name = str(f.name)\n            elif\
-          \ isinstance(f, dict):\n                name = f.get(\"filename\") or f.get(\"\
-          name\") or \"\"\n            names.append(name if name else \"uploaded_file\"\
-          )\n        file_names = \", \".join(names)\n\n    # ── Unwrap OCR JSON envelope\
-          \ ────────────────────────────\n    clean_text = \"\"\n    if raw_text:\n\
-          \        raw = raw_text.strip()\n        try:\n            parsed = json.loads(raw)\n\
-          \            if isinstance(parsed, dict) and \"result\" in parsed:\n   \
-          \             clean_text = str(parsed[\"result\"])\n            else:\n\
-          \                clean_text = json.dumps(parsed, ensure_ascii=False)\n \
-          \       except (json.JSONDecodeError, ValueError):\n            clean_text\
-          \ = raw\n\n    # ── Parse and build table ───────────────────────────────\n\
-          \    charts = parse_charts(clean_text)\n    chart_count = str(len(charts))\n\
-          \    tabular_output = build_table(charts)\n\n    return {\n        \"clean_text\"\
-          :     clean_text,\n        \"file_names\":     file_names,\n        \"tabular_output\"\
-          : tabular_output,\n        \"chart_count\":    chart_count,\n    }\n"
+        code: "import os\n\ndef get_file_name(f) -> str:\n    for attr in (\"filename\"\
+          , \"name\"):\n        try:\n            val = getattr(f, attr, None)\n \
+          \           if val:\n                return str(val)\n        except Exception:\n\
+          \            pass\n    if isinstance(f, dict):\n        return f.get(\"\
+          filename\") or f.get(\"name\") or \"\"\n    return \"\"\n\ndef get_mime(f)\
+          \ -> str:\n    try:\n        mime = getattr(f, \"mime_type\", None)\n  \
+          \      if mime:\n            return str(mime)\n    except Exception:\n \
+          \       pass\n    if isinstance(f, dict):\n        return f.get(\"mime_type\"\
+          , \"\")\n    return \"\"\n\ndef main(input_files) -> dict:\n    IMAGE_EXTS\
+          \    = {\".png\", \".jpg\", \".jpeg\", \".tiff\",\n                    \
+          \ \".bmp\", \".webp\", \".gif\"}\n    DOCUMENT_EXTS = {\".pdf\", \".docx\"\
+          , \".xlsx\", \".pptx\", \".csv\"}\n\n    if input_files is None:\n     \
+          \   files = []\n    elif isinstance(input_files, list):\n        files =\
+          \ input_files\n    else:\n        files = [input_files]\n\n    if not files:\n\
+          \        return {\n            \"file_type\":   \"unknown\",\n         \
+          \   \"is_image\":    \"false\",\n            \"is_document\": \"false\"\
+          ,\n            \"file_names\":  \"\",\n        }\n\n    is_image    = False\n\
+          \    is_document = False\n    file_names  = []\n\n    for f in files:\n\
+          \        name = get_file_name(f)\n        mime = get_mime(f)\n        ext\
+          \  = os.path.splitext(name)[1].lower() if name else \"\"\n\n        if ext\
+          \ in IMAGE_EXTS or mime.startswith(\"image/\"):\n            is_image =\
+          \ True\n            if not name:\n                name = \"image_file\"\n\
+          \        elif ext in DOCUMENT_EXTS or mime in (\n            \"application/pdf\"\
+          ,\n            \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\"\
+          ,\n            \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\"\
+          ,\n            \"application/vnd.openxmlformats-officedocument.presentationml.presentation\"\
+          ,\n            \"text/csv\",\n        ):\n            is_document = True\n\
+          \            if not name:\n                name = \"document_file\"\n  \
+          \      else:\n            is_document = True\n            if not name:\n\
+          \                name = \"uploaded_file\"\n\n        file_names.append(name)\n\
+          \n    if is_document:\n        file_type = \"document\"\n        is_image\
+          \  = False\n    elif is_image:\n        file_type = \"image\"\n    else:\n\
+          \        file_type = \"unknown\"\n\n    return {\n        \"file_type\"\
+          :   file_type,\n        \"is_image\":    str(is_image).lower(),\n      \
+          \  \"is_document\": str(is_document).lower(),\n        \"file_names\": \
+          \ \", \".join(file_names),\n    }\n"
         code_language: python3
-        desc: Unwrap the OCR tool's JSON-encoded text output and extract the plain
-          OCR content string.
+        desc: Inspect file extension and MIME type. Returns routing flags and file
+          names.
         outputs:
-          chart_count:
-            children: null
-            type: string
-          clean_text:
-            children: null
-            type: string
           file_names:
             children: null
             type: string
-          tabular_output:
+          file_type:
+            children: null
+            type: string
+          is_document:
+            children: null
+            type: string
+          is_image:
             children: null
             type: string
         selected: false
-        title: OCR text extractor
+        title: File type classifier
         type: code
         variables:
-        - value_selector:
-          - '1778134599931'
-          - text
-          value_type: string
-          variable: raw_text
         - value_selector:
           - node-start
           - input_file
           value_type: array[file]
           variable: input_files
-      height: 114
-      id: node-ocr-parser
+      height: 98
+      id: node-file-classifier
       position:
-        x: 1149
-        y: 81.5
+        x: 334
+        y: 275
       positionAbsolute:
-        x: 1149
-        y: 81.5
+        x: 334
+        y: 275
       selected: false
       type: custom
       width: 244
     - data:
-        desc: Render OCR-parsed chart data as structured markdown tables.
+        context:
+          enabled: false
+          variable_selector: []
+        desc: Send image(s) to a multimodal LLM with strict anti-hallucination rules.
+        model:
+          completion_params:
+            temperature: 0
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-vision
+          role: system
+          text: "You are a precise chart and graph extraction engine.\n\n════════\
+            \ RULES ════════\n\nRULE 1 — EXTRACT VISUALLY DERIVABLE VALUES\nExtract:\n\
+            - explicitly printed values\n- values visually derivable from axes, gridlines,\
+            \ bar heights,\n  line positions, pie percentages, scatter locations,\
+            \ and legends.\n\nRULE 2 — APPROXIMATE WHEN NECESSARY\nIf a value is estimated\
+            \ visually from chart geometry rather than\nexplicitly printed, output\
+            \ the numeric value and add:\n\n\"_flagged_value\": true\n\nExample:\n\
+            {\n  \"label\": \"Q1\",\n  \"series\": \"North\",\n  \"value\": 12000,\n\
+            \  \"_flagged_value\": true\n}\n\nRULE 3 — ONLY USE IMAGE CONTENT\nDo\
+            \ not use outside knowledge.\nOnly use what can reasonably be interpreted\
+            \ from the image.\n\nRULE 4 — UNREADABLE VALUES\nIf a value truly cannot\
+            \ be estimated because the chart is blurry,\ncut off, or ambiguous, use:\n\
+            \n\"value\": \"UNREADABLE\"\n\nRULE 5 — PIE CHARTS\nIf percentages are\
+            \ visually inferable from slice labels or geometry,\nextract them.\n\n\
+            RULE 6 — BAR / LINE / AREA CHARTS\nEstimate values using:\n- axis ticks\n\
+            - gridlines\n- relative bar/point position\n\nRULE 7 — EMPTY CASE\nIf\
+            \ no charts exist:\n{\n  \"graphs_found\": 0,\n  \"graphs\": [],\n  \"\
+            no_graph_reason\": \"No chart or graph detected.\"\n}\n\nRULE 8 — OUTPUT\
+            \ ONLY JSON\nNo markdown.\nNo prose.\nNo explanations.\n\n════════ OUTPUT\
+            \ FORMAT ════════\n\n{\n  \"graphs_found\": <integer>,\n  \"graphs\":\
+            \ [\n    {\n      \"graph_index\": 1,\n      \"graph_type\": \"\",\n \
+            \     \"title\": \"\",\n      \"x_axis\": {\n        \"label\": \"\",\n\
+            \        \"unit\": \"\",\n        \"ticks\": []\n      },\n      \"y_axis\"\
+            : {\n        \"label\": \"\",\n        \"unit\": \"\",\n        \"ticks\"\
+            : []\n      },\n      \"legend\": [],\n      \"data\": [],\n      \"source_annotation\"\
+            : \"\",\n      \"extraction_notes\": \"\"\n    }\n  ]\n}"
+        - id: user-vision
+          role: user
+          text: 'File name(s): {{#node-file-classifier.file_names#}}
+
+
+            Extract all charts and graphs from the image(s) above.
+
+            Follow all RULES exactly. Return only JSON.
+
+            '
+        selected: false
+        title: Vision extractor
+        type: llm
+        variables:
+        - value_selector:
+          - node-file-classifier
+          - file_names
+          variable: file_names
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - node-start
+            - input_file
+          enabled: true
+      height: 134
+      id: node-vision-extractor
+      position:
+        x: 638
+        y: 275
+      positionAbsolute:
+        x: 638
+        y: 275
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - node-vision-extractor
+          - text
+        desc: Audit vision JSON for hallucinations, impossible numbers, type errors.
+        model:
+          completion_params:
+            temperature: 0
+            top_p: 0
+          mode: chat
+          name: gemini-2.5-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-checker
+          role: system
+          text: "You are a strict data auditor for chart extraction results.\n\nCHECKS:\n\
+            1. Flag suspiciously round values with \"_flagged\": true sibling.\n2.\
+            \ Pie/donut: if % values deviate from 100 by >2, add \"sum_warning\".\n\
+            3. Data labels not in x_axis.ticks: add \"axis_mismatch_warning\".\n4.\
+            \ Normalise graph_type to canonical names:\n   Bar Chart, Grouped Bar\
+            \ Chart, Stacked Bar Chart, Column Chart,\n   Histogram, Line Chart, Area\
+            \ Chart, Pie Chart, Donut Chart,\n   Scatter Plot, Bubble Chart, Heatmap,\
+            \ Treemap, Waterfall Chart,\n   Funnel Chart, Sankey Diagram, Radar Chart,\
+            \ Box Plot,\n   Candlestick Chart, Gantt Chart, Sunburst Chart, Other.\n\
+            5. graphs_found = 0: pass through unchanged.\n\nAdd top-level \"audit_passed\"\
+            : true | false.\nReturn corrected/annotated JSON only. No prose.\n"
+        - id: user-checker
+          role: user
+          text: 'Audit this vision-extracted graph JSON:
+
+
+            {{#node-vision-extractor.text#}}
+
+            '
+        selected: false
+        title: Fact checker / auditor
+        type: llm
+        variables:
+        - value_selector:
+          - node-vision-extractor
+          - text
+          variable: vision_json
+        vision:
+          enabled: false
+      height: 134
+      id: node-fact-checker
+      position:
+        x: 942
+        y: 275
+      positionAbsolute:
+        x: 942
+        y: 275
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - node-vision-extractor
+          - text
+        desc: Convert audited graph JSON into clean markdown tables.
+        model:
+          completion_params:
+            temperature: 0
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-formatter
+          role: system
+          text: "Convert audited graph JSON {{#context#}}into markdown tables.\n\n\
+            RULES:\n1. Use charts array only. Ignore graphs_found if inconsistent.\n\
+            2. If charts is missing or empty → output:\n   > ℹ No charts detected.\n\
+            \n3. Heading per graph:\n   ### Graph {index}: {title} ({type})\n\n4.\
+            \ Layout by type:\n   - Bar/Column/Line/Area:\n     | {x_label} | Value\
+            \ |\n   - Pie/Donut:\n     | Category | Value | % |\n   - Scatter/Bubble:\n\
+            \     | {x_label} | {y_label} | Label |\n   - Heatmap: rows=y, cols=x\n\
+            \   - Other: best fit\n\n5. Any UNREADABLE value → \"—\"\n   Add footnote\
+            \ once at end:\n   > ⚠ Some values shown as —\n\n6. Any value with _flagged\
+            \ or _flagged_value true → append \"†\"\n   Add footnote once at end:\n\
+            \   > † May be approximate.\n\n7. Warnings (axis_mismatch_warning, sum_warning,\
+            \ etc.) must appear as blockquote below the table.\n\n8. source_annotation\
+            \ if present:\n   > Source: {text}\n\n9. Numbers: use commas for thousands.\n\
+            10. Give output only for whatever graph is found and the graph number.\n\
+            Return ONLY markdown."
+        - id: user-formatter
+          role: user
+          text: 'Format this audited JSON into markdown tables:
+
+
+            {{#node-vision-extractor.text#}}
+
+            '
+        selected: false
+        title: Table formatter
+        type: llm
+        variables:
+        - value_selector:
+          - node-fact-checker
+          - text
+          variable: audited_json
+        vision:
+          enabled: false
+      height: 134
+      id: node-table-formatter
+      position:
+        x: 1246
+        y: 275
+      positionAbsolute:
+        x: 1246
+        y: 275
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - node-table-formatter
+          - text
+        desc: Write a grounded plain-English summary per graph.
+        model:
+          completion_params:
+            temperature: 0.1
+          mode: chat
+          name: gemini-2.5-flash
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: sys-summary
+          role: system
+          text: "Write plain-English summaries of charts from verified data only.{{#context#}}\n\
+            \nRULES:\nA. Cite only values present in the audited JSON. No rounding.\n\
+            B. UNREADABLE values: state \"The value for [label] could not be read.\"\
+            \nC. No causal claims unless the chart annotates a reason.\nD. Flagged\
+            \ values: write \"approximately {value}\".\nE. graphs_found=0: write \"\
+            No charts were detected.\"\n\nFORMAT PER GRAPH:\n**Graph {index} — {title}\
+            \ ({type})**\n{2-4 sentences: highest, lowest, pattern, unreadable notes}\n\
+            Confidence: High | Medium | Low\n  High = all readable, no warnings\n\
+            \  Medium = some flagged or approximate\n  Low = multiple UNREADABLE or\
+            \ audit warnings\n"
+        - id: user-summary
+          role: user
+          text: 'Audited JSON:
+
+            {{#node-fact-checker.text#}}
+
+
+            Formatted tables:
+
+            {{#node-table-formatter.text#}}
+
+
+            Write the grounded summary for each graph.
+
+            '
+        selected: false
+        title: Summary writer
+        type: llm
+        variables:
+        - value_selector:
+          - node-fact-checker
+          - text
+          variable: audited_json
+        - value_selector:
+          - node-table-formatter
+          - text
+          variable: formatted_tables
+        vision:
+          enabled: false
+      height: 134
+      id: node-summary-writer
+      position:
+        x: 1550
+        y: 275
+      positionAbsolute:
+        x: 1550
+        y: 275
+      selected: false
+      type: custom
+      width: 244
+    - data:
+        desc: Merge tables and summary into the final structured report.
         selected: false
         template: '# Graph Extraction Report
 
 
-          | Field | Value |
-
-          |-------|-------|
-
-          | Source file | {{file_names}} |
-
-          | Charts found | {{chart_count}} |
-
-          | Extraction method | OCR Summarizer (text + image analysis) |
+          > **File(s) processed:** {{file_names}}
 
 
           ---
 
 
-          {{tabular_output}}
+          ## Extracted Data
+
+
+          {{tables}}
 
 
           ---
 
 
-          *All data extracted directly from the uploaded file. No LLM alteration applied.*'
+          ## Summary
+
+
+          {{summary}}
+
+
+          ---
+
+
+          *All values are extracted directly from the uploaded file.
+
+          Values shown as — could not be read from the image.
+
+          Values marked with † may be approximate.*
+
+          '
         title: Output template
         type: template-transform
         variables:
         - value_selector:
-          - node-ocr-parser
+          - node-file-classifier
           - file_names
           variable: file_names
         - value_selector:
-          - node-ocr-parser
-          - chart_count
-          variable: chart_count
+          - node-table-formatter
+          - text
+          variable: tables
         - value_selector:
-          - node-ocr-parser
-          - tabular_output
-          variable: tabular_output
+          - node-summary-writer
+          - text
+          variable: summary
       height: 98
       id: node-output-template
       position:
-        x: 1488.7217639151463
-        y: 81.54733627877897
+        x: 1854
+        y: 275
       positionAbsolute:
-        x: 1488.7217639151463
-        y: 81.54733627877897
+        x: 1854
+        y: 275
       selected: false
       type: custom
       width: 244
     - data:
-        desc: Return the formatted graph extraction report.
+        desc: Workflow end. Returns the verified graph extraction report.
         outputs:
         - name: report
           type: string
@@ -400,19 +576,17 @@ workflow:
         title: End
         type: end
       height: 134
-      id: '1778134631040'
+      id: node-end
       position:
-        x: 1830.6586618510987
-        y: 81.54733627877897
+        x: 2158
+        y: 275
       positionAbsolute:
-        x: 1830.6586618510987
-        y: 81.54733627877897
+        x: 2158
+        y: 275
       selected: false
-      sourcePosition: right
-      targetPosition: left
       type: custom
       width: 244
     viewport:
-      x: -330.87507610465605
-      y: 172.71702471451366
-      zoom: 0.9249651765823904
+      x: -395.0000000000001
+      y: -98.89999999999992
+      zoom: 0.7
