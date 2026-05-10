@@ -1,0 +1,469 @@
+app:
+  description: Validate Form 3 with Rules 20, 21, 24 and generates the deficiency
+    email
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: Travel_Expenses_Form3_Validator
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: document-extractor
+      id: 1778395929348-source-1778395958024-target
+      selected: false
+      source: '1778395929348'
+      sourceHandle: source
+      target: '1778395958024'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: code
+      id: 1778395958024--1778396026799-target
+      selected: false
+      source: '1778395958024'
+      sourceHandle: source
+      target: '1778396026799'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: 1778396026799--1778396529387-target
+      selected: false
+      source: '1778396026799'
+      sourceHandle: source
+      target: '1778396529387'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: 1778396529387--1778397904978-target
+      selected: false
+      source: '1778396529387'
+      sourceHandle: source
+      target: '1778397904978'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: knowledge-retrieval
+      id: 1778397904978--1778398343623-target
+      selected: false
+      source: '1778397904978'
+      sourceHandle: source
+      target: '1778398343623'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: template-transform
+      id: 1778398343623--1778398513818-target
+      selected: false
+      source: '1778398343623'
+      sourceHandle: source
+      target: '1778398513818'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: template-transform
+        targetType: end
+      id: 1778398513818--1778398679829-target
+      selected: false
+      source: '1778398513818'
+      sourceHandle: source
+      target: '1778398679829'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables: []
+      height: 53
+      id: '1778395929348'
+      position:
+        x: -333.3027978654933
+        y: 44.97381341437929
+      positionAbsolute:
+        x: -333.3027978654933
+        y: 44.97381341437929
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: Read Form 3 Excel file and extract text
+        is_array_file: true
+        selected: false
+        title: Extract_Form3_File
+        type: document-extractor
+        variable_selector:
+        - sys
+        - files
+      height: 122
+      id: '1778395958024'
+      position:
+        x: -50.48291840131253
+        y: 44.97381341437929
+      positionAbsolute:
+        x: -50.48291840131253
+        y: 44.97381341437929
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import re\nimport json\n\n# Get the raw text from Doc Extractor\nraw_text\
+          \ = doc_text\n\n# -RULE-BASED EXTRACTION-\n\n# Rule 1: Extract Supplier\
+          \ Name\n# Assumption: Supplier name is in first few lines, after \"Supplier:\"\
+          \nsupplier_name = \"\"\nsupplier_match = re.search(r'Supplier[:\\s]+([^\\\
+          n]+)', raw_text, re.IGNORECASE)\nif supplier_match:\n    supplier_name =\
+          \ supplier_match.group(1).strip()\n\n# Rule 2: Extract Date\n# Assumption:\
+          \ Date is in YYYY-MM-DD or DD/MM/YYYY format\ndate_str = \"\"\ndate_match\
+          \ = re.search(r'(\\d{4}-\\d{2}-\\d{2}|\\d{2}/\\d{2}/\\d{4})', raw_text)\n\
+          if date_match:\n    date_str = date_match.group(1).strip()\n\n# Rule 3:\
+          \ Extract Employee Type\n# Assumption: Contains \"Executive\" or \"Staff\"\
+          \nemployee_type = \"Staff\"  # Default\nif \"executive\" in raw_text.lower():\n\
+          \    employee_type = \"Executive\"\n\n# Rule 4: Extract Data Rows\n# Assumption:\
+          \ Form has table-like structure\ndata_rows = []\n\nlines = raw_text.split('\\\
+          n')\nfor line in lines:\n    amount_match = re.search(r'(\\d+\\.?\\d*)',\
+          \ line)\n    if amount_match:\n        parts = line.split('|')  # If pipe-separated\n\
+          \        if len(parts) >= 2:\n            try:\n                amount =\
+          \ float(amount_match.group(1))\n                category = parts[0].strip()\
+          \ if len(parts) > 0 else \"\"\n                sub_category = parts[1].strip()\
+          \ if len(parts) > 1 else \"\"\n                revision = parts[-1].strip()\
+          \ if len(parts) > 2 else \"\"\n                \n                if category\
+          \ and amount > 0:\n                    data_rows.append({\n            \
+          \            \"category\": category,\n                        \"sub_category\"\
+          : sub_category,\n                        \"amount\": amount,\n         \
+          \               \"revision_category\": revision\n                    })\n\
+          \            except:\n                pass\n\n# Return extracted data as\
+          \ dictionary\nextracted_data = {\n    \"supplier_name\": supplier_name,\n\
+          \    \"date\": date_str,\n    \"employee_type\": employee_type,\n    \"\
+          data_rows\": data_rows\n}\n"
+        code_language: python3
+        desc: Extract Data Rule based, extract supplier name, date, employee type,
+          data rows
+        outputs:
+          extracted_data:
+            children: null
+            type: string
+        selected: false
+        title: Extract_Data_RuleBased
+        type: code
+        variables: []
+      height: 97
+      id: '1778396026799'
+      position:
+        x: 238.06375737479624
+        y: 55.495673410257865
+      positionAbsolute:
+        x: 238.06375737479624
+        y: 55.495673410257865
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "from datetime import datetime\nimport json\n \n# Get extracted data\
+          \ from Node 3\nsupplier_name = extracted_data.get('supplier_name', '')\n\
+          date_str = extracted_data.get('date', '')\nemployee_type = extracted_data.get('employee_type',\
+          \ 'Staff')\ndata_rows = extracted_data.get('data_rows', [])\n \n# Get PMS\
+          \ suppliers list from variable (get from Shubham, assuming it is pms_suppliers_list\
+          \ also kept in input variable in validate rules node)\ntry:\n    if isinstance(pms_suppliers_list,\
+          \ str):\n        pms_database = json.loads(pms_suppliers_list)\n    else:\n\
+          \        pms_database = pms_suppliers_list\nexcept:\n    pms_database =\
+          \ []\n \nresults = []\n \n# RULE 20: DATE VALIDATION\n \nif not date_str:\n\
+          \    results.append({\n        \"rule\": 20,\n        \"status\": \"FAIL\"\
+          ,\n        \"issue\": \"Date is empty\",\n        \"correction\": \"Enter\
+          \ date in YYYY-MM-DD format\"\n    })\nelse:\n    try:\n        date_obj\
+          \ = datetime.strptime(date_str, '%Y-%m-%d')\n        if date_obj > datetime.now():\n\
+          \            results.append({\n                \"rule\": 20,\n         \
+          \       \"status\": \"FAIL\",\n                \"issue\": f\"Date {date_str}\
+          \ is in future\",\n                \"correction\": \"Provide current or\
+          \ past date\"\n            })\n        elif date_obj.year < 2000:\n    \
+          \        results.append({\n                \"rule\": 20,\n             \
+          \   \"status\": \"FAIL\",\n                \"issue\": f\"Date {date_str}\
+          \ is too old\",\n                \"correction\": \"Provide recent date (after\
+          \ 2000)\"\n            })\n        else:\n            results.append({\"\
+          rule\": 20, \"status\": \"PASS\"})\n    except:\n        results.append({\n\
+          \            \"rule\": 20,\n            \"status\": \"FAIL\",\n        \
+          \    \"issue\": f\"Date format invalid: {date_str}\",\n            \"correction\"\
+          : \"Use format YYYY-MM-DD\"\n        })\n \n# RULE 21: SUPPLIER NAME VALIDATION\
+          \ (DYNAMIC PMS)\n \nif not supplier_name:\n    results.append({\n      \
+          \  \"rule\": 21,\n        \"status\": \"FAIL\",\n        \"issue\": \"Supplier\
+          \ name is empty\",\n        \"correction\": \"Enter supplier name\"\n  \
+          \  })\nelse:\n    # Check if PMS database is empty\n    if not pms_database:\n\
+          \        results.append({\n            \"rule\": 21,\n            \"status\"\
+          : \"FAIL\",\n            \"issue\": \"PMS database not available\",\n  \
+          \          \"correction\": \"Contact administrator  PMS data not loaded\"\
+          \n        })\n    else:\n        # Compare supplier name against PMS list\
+          \ (dynamic)\n        name_lower = supplier_name.lower()\n        found =\
+          \ False\n        \n        # Handle different PMS data formats\n       \
+          \ for pms_entry in pms_database:\n            # If pms_entry is a string\n\
+          \            if isinstance(pms_entry, str):\n                pms_name =\
+          \ pms_entry.lower()\n            # If pms_entry is a dict with 'name' field\n\
+          \            elif isinstance(pms_entry, dict):\n                pms_name\
+          \ = pms_entry.get('name', '').lower()\n            else:\n             \
+          \   continue\n            \n            if name_lower == pms_name:\n   \
+          \             results.append({\"rule\": 21, \"status\": \"PASS\"})\n   \
+          \             found = True\n                break\n        \n        if\
+          \ not found:\n            results.append({\n                \"rule\": 21,\n\
+          \                \"status\": \"FAIL\",\n                \"issue\": f\"Supplier\
+          \ name '{supplier_name}' not found in PMS database\",\n                \"\
+          correction\": \"Verify name against PMS or update PMS database\"\n     \
+          \       })\n \n# RULE 24: DAILY ALLOWANCE VALIDATION (PLACEHOLDER)\n# Will\
+          \ update after client answers\n \nrule_24_issues = []\n \nfor row in data_rows:\n\
+          \    revision_category = row.get('revision_category', '').lower()\n    \n\
+          \    if 'daily allowance change' not in revision_category and 'new addition'\
+          \ not in revision_category:\n        continue\n    \n    amount = row.get('amount',\
+          \ 0)\n    \n    if amount <= 0:\n        rule_24_issues.append({\n     \
+          \       \"category\": row.get('category', ''),\n            \"issue\": \"\
+          Amount must be positive\",\n            \"found\": amount\n        })\n\
+          \ \nif rule_24_issues:\n    for issue in rule_24_issues:\n        results.append({\n\
+          \            \"rule\": 24,\n            \"status\": \"FAIL\",\n        \
+          \    \"category\": issue['category'],\n            \"issue\": issue['issue']\n\
+          \        })\nelse:\n    results.append({\"rule\": 24, \"status\": \"PASS\"\
+          })\n \n# Summarize\npassed = len([r for r in results if r.get('status')\
+          \ == 'PASS'])\nfailed = len([r for r in results if r.get('status') == 'FAIL'])\n\
+          \ \nvalidation_results = {\n    \"supplier_name\": supplier_name,\n    \"\
+          passed\": passed,\n    \"failed\": failed,\n    \"has_issues\": failed >\
+          \ 0,\n    \"results\": results\n}\n"
+        code_language: python3
+        desc: Validate rules 20,21,24 against extracted data
+        outputs:
+          validation_results:
+            children: null
+            type: string
+        selected: false
+        title: Validate_Rules_20_21_24
+        type: code
+        variables:
+        - value_selector:
+          - '1778396026799'
+          - extracted_data
+          value_type: string
+          variable: extracted_data
+        - value_selector:
+          - '1778395958024'
+          - text
+          value_type: array[string]
+          variable: get_variablefrom_pms_extraction
+      height: 97
+      id: '1778396529387'
+      position:
+        x: 549.6540189426795
+        y: 66.43114662054612
+      positionAbsolute:
+        x: 549.6540189426795
+        y: 66.43114662054612
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        advanced_settings:
+          group_enabled: true
+          groups:
+          - groupId: 740a795a-6753-408b-9f50-212f55cf64df
+            group_name: Validation_Group
+            output_type: string
+            variables:
+            - - '1778396529387'
+              - validation_results
+        desc: Collect and aggregate validation results
+        output_type: string
+        selected: false
+        title: Aggregate_Results
+        type: variable-aggregator
+        variables:
+        - - '1778396529387'
+          - validation_results
+      height: 139
+      id: '1778397904978'
+      position:
+        x: 851.8468785372384
+        y: 66.43114662054612
+      positionAbsolute:
+        x: 851.8468785372384
+        y: 66.43114662054612
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - PyYwaq1f3l+rRX+P/GIo8dHFQ/ZJxEJEqsYw/FoFrs4xr8Do8ssJqKSeYCVdjJHv
+        desc: Load Client KB (08 files) for reference standards (This will be updated
+          once KB will get setup)
+        multiple_retrieval_config:
+          reranking_enable: true
+          reranking_mode: weighted_score
+          top_k: 4
+          weights:
+            keyword_setting:
+              keyword_weight: 0
+            vector_setting:
+              embedding_model_name: gemini-embedding-001
+              embedding_provider_name: langgenius/gemini/google
+              vector_weight: 1
+        query_variable_selector:
+        - '1778397904978'
+        - Validation_Group
+        retrieval_mode: multiple
+        selected: false
+        title: Load KB Standards
+        type: knowledge-retrieval
+      height: 151
+      id: '1778398343623'
+      position:
+        x: 1149.5649408462339
+        y: 77.65446394948322
+      positionAbsolute:
+        x: 1149.5649408462339
+        y: 77.65446394948322
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        selected: false
+        template: "{% if validation_results.has_issues %}\r\n \r\nSUBJECT: Form 3\
+          \ Deficiencies Found\r\n \r\nDear {{ validation_results.supplier_name }},\r\
+          \n \r\nYour Form 3 has {{ validation_results.failed }} deficiencies:\r\n\
+          \ \r\n{% for result in validation_results.results %}\r\n{% if result.status\
+          \ == 'FAIL' %}\r\n \r\nRULE {{ result.rule }}: {{ result.issue }}\r\n{%\
+          \ if result.correction %}\r\nAction: {{ result.correction }}\r\n{% endif\
+          \ %}\r\n{% if result.category %}\r\nCategory: {{ result.category }}\r\n\
+          {% endif %}\r\n \r\n{% endif %}\r\n{% endfor %}\r\n \r\nPlease fix and resubmit\
+          \ Form 3.\r\n \r\nThanks\r\n \r\n{% else %}\r\n \r\nSUBJECT: Form 3 All\
+          \ Validations Passed\r\n \r\nDear {{ validation_results.supplier_name }},\r\
+          \n \r\nYour Form 3 has passed all validations!\r\n \r\nAll validations PASSED\r\
+          \n \r\nYour form is ready for next steps.\r\n \r\nThanks\r\n \r\n{% endif\
+          \ %}"
+        title: Template
+        type: template-transform
+        variables: []
+      height: 53
+      id: '1778398513818'
+      position:
+        x: 1454.7586656159692
+        y: 92.69069495415309
+      positionAbsolute:
+        x: 1454.7586656159692
+        y: 92.69069495415309
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: Output final email result to user
+        outputs: []
+        selected: false
+        title: Output Result
+        type: end
+      height: 81
+      id: '1778398679829'
+      position:
+        x: 1759.0953651358373
+        y: 92.69069495415309
+      positionAbsolute:
+        x: 1759.0953651358373
+        y: 92.69069495415309
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 206.8050585127271
+      y: 150.60559987176936
+      zoom: 0.4752011528340538
