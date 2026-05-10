@@ -1,0 +1,430 @@
+app:
+  description: 'Purpose: This reusable engine maps unstructured background context
+    directly into standardized email templates to generate ready-to-send drafts.
+
+
+    Flow: It safely identifies required fields, flags missing information, and prevents
+    AI hallucinations to guarantee a perfectly formatted, corporate-ready email.'
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: Engine_Mail_Drafter_POC
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: ''
+    id: 3b904f78-045d-43cd-9123-5e8d30c5c8b8
+    name: MISSING_DATA_TAG
+    selector:
+    - env
+    - MISSING_DATA_TAG
+    value: '[MISSING: VariableName]'
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1778054423386-source-1778054574029-target
+      source: '1778054423386'
+      sourceHandle: source
+      target: '1778054574029'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: llm
+      id: 1778054574029-source-1778054882526-target
+      source: '1778054574029'
+      sourceHandle: source
+      target: '1778054882526'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1778054882526-source-1778055189207-target
+      source: '1778054882526'
+      sourceHandle: source
+      target: '1778055189207'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 'Purpose: Acts as the entry point for the Notification Engine, receiving
+          the raw data from the calling system or agent.
+
+
+          Input: recipient_name (String), email_template (String), context_data (String).
+
+
+          Output: Passes raw variables to downstream nodes.
+
+
+          Logic/Assumption: Assumes the calling system has validated the inputs before
+          triggering this flow.'
+        selected: false
+        title: Input_ReceivePayload
+        type: start
+        variables:
+        - default: ''
+          hint: ''
+          label: recipient_name
+          options: []
+          placeholder: ''
+          required: false
+          type: text-input
+          variable: recipient_name
+        - default: ''
+          hint: ''
+          label: email_template
+          options: []
+          placeholder: ''
+          required: true
+          type: paragraph
+          variable: email_template
+        - default: ''
+          hint: ''
+          label: context_data
+          options: []
+          placeholder: ''
+          required: true
+          type: paragraph
+          variable: context_data
+      height: 378
+      id: '1778054423386'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1778054423386'
+          - email_template
+        desc: 'Purpose: Parses the boilerplate email template to identify dynamically
+          required fields (e.g., [Name], {{Date}}).
+
+
+          Input: email_template from Input_ReceivePayload.
+
+
+          Output: A comma-separated string or JSON list of required variables.
+
+
+          Logic/Assumption: LLM is instructed to ignore conversational text and only
+          extract the exact placeholder syntax.'
+        model:
+          completion_params:
+            temperature: 0.8
+          mode: chat
+          name: gemini-flash-lite-latest
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 9e7f41e7-d501-46b4-b7d3-e8667dc0981a
+          role: system
+          text: "You are an analytical parser. Read the user's email template and\
+            \ identify every variable or placeholder that needs to be filled (e.g.,\
+            \ words/sub-words inside brackets like [Name] or {date} or <tag> etc.).\
+            \ Extract these variables precisely as they appear. \nDo not include conversational\
+            \ text."
+        - id: 45d14421-e6c5-46f4-a393-bc32c8a88c8b
+          role: user
+          text: 'Template:
+
+            {{#context#}}'
+        reasoning_format: tagged
+        selected: false
+        structured_output:
+          schema:
+            properties:
+              required_variables:
+                description: List of all placeholders found in the template.
+                items:
+                  type: string
+                type: array
+            required:
+            - required_variables
+            type: object
+        structured_output_enabled: true
+        title: LLM_ExtractVariables
+        type: llm
+        vision:
+          enabled: false
+      height: 310
+      id: '1778054574029'
+      position:
+        x: 382
+        y: 303
+      positionAbsolute:
+        x: 382
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 'Purpose: Maps the unstructured context data to the required template
+          variables and generates the final email string.
+
+
+          Input: email_template, context_data, recipient_name, and the variable list
+          from LLM_ExtractVariables.
+
+
+          Output: The final formatted email string.
+
+
+          Logic/Assumption: Enforces strict graceful failure. If a required variable
+          is not found in the context, it must output [MISSING: VariableName]. Must
+          not hallucinate or add markdown.'
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-flash-lite-latest
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: f5b1e798-bb75-4665-b81e-ea2e370cd7e8
+          role: system
+          text: 'You are a professional corporate email drafter. Your task is to fill
+            in the provided ''Email Template'' using the provided ''Context Data''.
+
+
+            Rules:
+
+            1. Recipient Name is: {{#1778054423386.recipient_name#}}
+
+            2. The required placeholders to fill are: {{#1778054574029.structured_output.required_variables#}}
+
+            3. Map the Context Data to the placeholders accurately.
+
+            4. If a required piece of data is completely missing from the Context
+            Data, insert exactly {{#env.MISSING_DATA_TAG#}}.
+
+            5. Do not summarize the boilerplate template text. Do not include markdown
+            blocks (like ```json).
+
+            6. Formatting: You MUST preserve the original line breaks and paragraph
+            spacing of the template. Use\n or\n\n characters inside the JSON string
+            to separate the lines properly.'
+        - id: 1fb994c5-22c4-4bc4-b8f7-d4966288e7b6
+          role: user
+          text: 'Context Data:
+
+            {{#1778054423386.context_data#}}
+
+
+            Email Template:
+
+            {{#1778054423386.email_template#}}'
+        selected: false
+        structured_output:
+          schema:
+            properties:
+              email_body:
+                description: The final drafted email with mapped variables.
+                type: string
+              email_subject:
+                description: A crisp, professional subject line summarizing the drafted
+                  email.
+                type: string
+            required:
+            - email_body
+            - email_subject
+            type: object
+        structured_output_enabled: true
+        title: LLM_DraftEmail
+        type: llm
+        vision:
+          enabled: false
+      height: 342
+      id: '1778054882526'
+      position:
+        x: 681.8
+        y: 303
+      positionAbsolute:
+        x: 681.8
+        y: 303
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 'Purpose: Packages the drafted string and returns it to the calling
+          system.
+
+
+          Input: Output text from LLM_DraftEmail.
+
+
+          Output: final_email_draft (String).
+
+
+          Logic/Assumption: Output is a pure string ready for SMTP or Graph API transmission.'
+        outputs:
+        - value_selector:
+          - '1778054882526'
+          - structured_output
+          - email_subject
+          value_type: object
+          variable: Subject
+        - value_selector:
+          - '1778054882526'
+          - structured_output
+          - email_body
+          value_type: object
+          variable: Body
+        selected: false
+        title: Output_ReturnDraft
+        type: end
+      height: 288
+      id: '1778055189207'
+      position:
+        x: 975.5999999999999
+        y: 303
+      positionAbsolute:
+        x: 975.5999999999999
+        y: 303
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        author: Mayank Pathak
+        desc: ''
+        height: 88
+        selected: false
+        showAuthor: true
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":1,"mode":"normal","style":"","text":"Business
+          Rule - Variable Syntax:","type":"text","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"
+          This LLM node must be syntax-agnostic. It is trained to extract variables
+          regardless of how the user formats them (e.g., ","type":"text","version":1},{"detail":0,"format":16,"mode":"normal","style":"","text":"[var]","type":"text","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":",
+          ","type":"text","version":1},{"detail":0,"format":16,"mode":"normal","style":"","text":"{{var}}","type":"text","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":",
+          ","type":"text","version":1},{"detail":0,"format":16,"mode":"normal","style":"","text":"<var>","type":"text","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":").
+          Do not hardcode regex here unless the LLM fails consistently.","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":""}],"direction":null,"format":"","indent":0,"type":"root","version":1}}'
+        theme: blue
+        title: ''
+        type: ''
+        width: 240
+      height: 88
+      id: '1778058406763'
+      position:
+        x: 386.30987788069035
+        y: 206.64367302445342
+      positionAbsolute:
+        x: 386.30987788069035
+        y: 206.64367302445342
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 240
+    - data:
+        author: Mayank Pathak
+        desc: ''
+        height: 88
+        selected: false
+        showAuthor: true
+        text: '{"root":{"children":[{"children":[{"detail":0,"format":1,"mode":"normal","style":"","text":"Edge
+          Case - Graceful Failure:","type":"text","version":1},{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"
+          Do NOT allow the LLM to guess missing data (e.g., hallucinating a ticket
+          number). The strict business rule is to output ","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"link","version":1,"rel":"noreferrer","target":null,"title":null,"url":""},{"detail":0,"format":16,"mode":"normal","style":"","text":"[MISSING:
+          Variable]","type":"text","version":1},{"detail":0,"format":0,"mode":"normal","style":"","text":"
+          so a human reviewer or downstream agent can catch the incomplete data before
+          sending.","type":"text","version":1}],"direction":null,"format":"","indent":0,"type":"paragraph","version":1,"textFormat":1,"textStyle":""}],"direction":null,"format":"","indent":0,"type":"root","version":1}}'
+        theme: blue
+        title: ''
+        type: ''
+        width: 240
+      height: 88
+      id: '1778058442133'
+      position:
+        x: 683.8925496918578
+        y: 206.71931317676962
+      positionAbsolute:
+        x: 683.8925496918578
+        y: 206.71931317676962
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-note
+      width: 240
+    viewport:
+      x: 135.18717649084283
+      y: -23.459652398250796
+      zoom: 0.5813207555784845
