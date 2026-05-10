@@ -1,0 +1,426 @@
+app:
+  description: Exports ALL Dify DSLs on every cron run. Detects changes via normalised
+    diff and commits only changed files to GitHub. No iteration node — all processing
+    happens inside a single Python loop in SYNC_ALL_APPS, giving full timeout control.
+    Dual persistent httpx clients (Dify + GitHub) reuse connections across all apps,
+    eliminating repeated TLS handshakes.
+  icon: 🕐
+  icon_background: '#E0F2FE'
+  mode: workflow
+  name: Dify Dsl Github Sync Cron OPTIMISED - v23
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: Static Bearer token — cloud.dify.ai DevTools > Application > Local
+      Storage > access_token
+    id: env-dify-access-token
+    name: DIFY_ACCESS_TOKEN
+    selector:
+    - env
+    - DIFY_ACCESS_TOKEN
+    value: ''
+    value_type: secret
+  - description: Dify host URL (e.g. http://172.30.116.165)
+    id: env-dify-host
+    name: DIFY_HOST
+    selector:
+    - env
+    - DIFY_HOST
+    value: http://172.30.116.165
+    value_type: string
+  - description: GitHub Personal Access Token with repo scope
+    id: env-github-token
+    name: GITHUB_TOKEN
+    selector:
+    - env
+    - GITHUB_TOKEN
+    value: ''
+    value_type: secret
+  - description: GitHub repository owner or organisation
+    id: env-github-owner
+    name: GITHUB_OWNER
+    selector:
+    - env
+    - GITHUB_OWNER
+    value: anshikaverma-lgtm
+    value_type: string
+  - description: GitHub repository name
+    id: env-github-repo
+    name: GITHUB_REPO
+    selector:
+    - env
+    - GITHUB_REPO
+    value: dify-dsl-sync
+    value_type: string
+  - description: Target branch for commits
+    id: env-github-branch
+    name: GITHUB_BRANCH
+    selector:
+    - env
+    - GITHUB_BRANCH
+    value: main
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions: []
+      allowed_file_types: []
+      allowed_file_upload_methods: []
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: code
+      id: e-start-getapps
+      source: start
+      sourceHandle: source
+      target: get_all_apps
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: code
+      id: e-getapps-syncall
+      source: get_all_apps
+      sourceHandle: source
+      target: sync_all_apps
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: end
+      id: e-syncall-end
+      source: sync_all_apps
+      sourceHandle: source
+      target: end_node
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables: []
+      height: 53
+      id: start
+      position:
+        x: 80
+        y: 300
+      positionAbsolute:
+        x: 80
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import httpx\n\ndef main(DIFY_ACCESS_TOKEN: str, DIFY_HOST: str):\n\
+          \    PAGE_SIZE = 100\n    MAX_PAGES = 100   # cap: 10 000 apps\n    host\
+          \      = DIFY_HOST.rstrip('/')\n    headers   = {'Authorization': f'Bearer\
+          \ {DIFY_ACCESS_TOKEN}'}\n    timeout   = httpx.Timeout(connect=5.0, read=10.0,\
+          \ write=5.0, pool=5.0)\n    all_apps  = []\n    page      = 1\n\n    try:\n\
+          \        with httpx.Client(timeout=timeout) as client:\n            while\
+          \ page <= MAX_PAGES:\n                resp = client.get(\n             \
+          \       f'{host}/console/api/apps?page={page}&limit={PAGE_SIZE}',\n    \
+          \                headers=headers\n                )\n                if\
+          \ resp.status_code == 401:\n                    return {\n             \
+          \           'all_apps': [],\n                        'total_apps': 0,\n\
+          \                        'status': 'Error: TOKEN_EXPIRED — update DIFY_ACCESS_TOKEN\
+          \ env var'\n                    }\n                resp.raise_for_status()\n\
+          \                body  = resp.json()\n                batch = body.get('data',\
+          \ [])\n                all_apps.extend({'id': a['id'], 'name': a['name']}\
+          \ for a in batch)\n                if not body.get('has_more', False) or\
+          \ not batch:\n                    break\n                page += 1\n\n \
+          \       capped = page > MAX_PAGES\n        status = (\n            f'OK:\
+          \ {len(all_apps)} apps fetched in {page} page(s)'\n            + (' | WARNING:\
+          \ hit page cap — increase MAX_PAGES if apps are missing' if capped else\
+          \ '')\n        )\n        return {'all_apps': all_apps, 'total_apps': len(all_apps),\
+          \ 'status': status}\n\n    except httpx.TimeoutException:\n        return\
+          \ {'all_apps': [], 'total_apps': 0, 'status': 'Error: Dify API timeout —\
+          \ check DIFY_HOST'}\n    except Exception as e:\n        detail = f' | {e.response.text}'\
+          \ if hasattr(e, 'response') else ''\n        return {'all_apps': [], 'total_apps':\
+          \ 0, 'status': f'Error: {str(e)}{detail}'}\n"
+        code_language: python3
+        desc: 'Paginates Dify API and returns full app list. PAGE_SIZE=100 (Dify max).
+          Hard-fails on 401 so SYNC_ALL_APPS never runs with a bad token. Split-timeout:
+          connect=5s (fast fail on bad host), read=10s. Separate node so fetch errors
+          are visible in logs before GitHub I/O starts.'
+        outputs:
+          all_apps:
+            children: null
+            type: array[object]
+          status:
+            children: null
+            type: string
+          total_apps:
+            children: null
+            type: number
+        selected: false
+        title: GET_ALL_APPS
+        type: code
+        variables:
+        - value_selector:
+          - env
+          - DIFY_ACCESS_TOKEN
+          value_type: secret
+          variable: DIFY_ACCESS_TOKEN
+        - value_selector:
+          - env
+          - DIFY_HOST
+          value_type: string
+          variable: DIFY_HOST
+      height: 193
+      id: get_all_apps
+      position:
+        x: 380
+        y: 300
+      positionAbsolute:
+        x: 380
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import httpx\nimport base64\nimport re\nfrom datetime import datetime,\
+          \ timezone\n\n# ── UI field stripper ────────────────────────────────────────────────────\n\
+          UI_KEYS = {\n    'position', 'positionAbsolute', 'selected', 'zIndex',\n\
+          \    'height', 'width', 'sourcePosition', 'targetPosition',\n    'draggable',\
+          \ 'selectable', 'viewport',\n}\nUI_PAT = re.compile(\n    r'^(\\s*)(' +\
+          \ '|'.join(UI_KEYS) + r')(\\s*:.*)$'\n)\n\ndef normalise_dsl(raw: str) ->\
+          \ str:\n    \"\"\"Remove canvas-only UI fields so cosmetic canvas edits\n\
+          \    (drag, resize) do not trigger a commit.\"\"\"\n    out, skip_indent\
+          \ = [], None\n    for line in raw.splitlines():\n        if not line.strip():\n\
+          \            out.append(line)\n            skip_indent = None\n        \
+          \    continue\n        indent = len(line) - len(line.lstrip())\n       \
+          \ if skip_indent is not None:\n            if indent > skip_indent:\n  \
+          \              continue\n            skip_indent = None\n        if UI_PAT.match(line):\n\
+          \            skip_indent = indent\n            continue\n        out.append(line)\n\
+          \    return '\\n'.join(out)\n\n\n# ── Main ─────────────────────────────────────────────────────────────────\n\
+          def main(\n    DIFY_ACCESS_TOKEN: str, DIFY_HOST: str,\n    GITHUB_TOKEN:\
+          \ str, GITHUB_REPO: str,\n    GITHUB_OWNER: str, GITHUB_BRANCH: str,\n \
+          \   all_apps: list\n):\n    host     = DIFY_HOST.rstrip('/')\n    now_ts\
+          \   = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')\n    results\
+          \  = []\n    synced   = skipped = errors = 0\n\n    # Split-timeout objects:\n\
+          \    # Dify is on the internal network — connect should be <100ms\n    dify_timeout\
+          \   = httpx.Timeout(connect=3.0, read=10.0, write=5.0,  pool=5.0)\n    #\
+          \ GitHub CDN — first connect ~200ms, pooled for subsequent requests\n  \
+          \  github_timeout = httpx.Timeout(connect=5.0, read=8.0,  write=8.0,  pool=5.0)\n\
+          \n    dify_headers = {'Authorization': f'Bearer {DIFY_ACCESS_TOKEN}'}\n\
+          \    github_headers = {\n        'Authorization':        f'Bearer {GITHUB_TOKEN}',\n\
+          \        'Accept':               'application/vnd.github+json',\n      \
+          \  'X-GitHub-Api-Version': '2022-11-28',\n    }\n\n    # Create both clients\
+          \ once — connection pool is reused across all apps.\n    # After the first\
+          \ app each request skips the TLS handshake (~0.3s saved per app).\n    with\
+          \ httpx.Client(timeout=dify_timeout) as dify_client, \\\n         httpx.Client(base_url='https://api.github.com',\
+          \ timeout=github_timeout,\n                       headers=github_headers)\
+          \ as gh_client:\n\n        for app in all_apps:\n            app_id   =\
+          \ app.get('id',   '')\n            app_name = app.get('name', 'unknown')\n\
+          \            clean    = ''.join(\n                c for c in app_name if\
+          \ c.isalnum() or c in (' ', '_')\n            ).strip().replace(' ', '_')\n\
+          \            gh_path  = f'/repos/{GITHUB_OWNER}/{GITHUB_REPO}/contents/dsl/{clean}.yml'\n\
+          \n            try:\n                # ── Step 1: Export DSL from Dify ──────────────────────\n\
+          \                dr = dify_client.get(\n                    f'{host}/console/api/apps/{app_id}/export',\n\
+          \                    headers=dify_headers\n                )\n         \
+          \       if dr.status_code == 401:\n                    # Token expired —\
+          \ all remaining apps will also fail; stop now\n                    results.append({'app':\
+          \ app_name, 'status': 'Error', 'commit_id': 'TOKEN_EXPIRED'})\n        \
+          \            errors += 1\n                    break\n                dr.raise_for_status()\n\
+          \                ct  = dr.headers.get('content-type', '')\n            \
+          \    dsl = dr.json().get('data', '') if 'json' in ct else dr.text\n\n  \
+          \              # ── Step 2: GitHub GET — fetch existing file ───────────\n\
+          \                sha      = None\n                get_resp = gh_client.get(gh_path)\n\
+          \                if get_resp.status_code == 200:\n                    gdata\
+          \    = get_resp.json()\n                    sha      = gdata.get('sha')\n\
+          \                    raw_b64  = gdata.get('content', '').replace('\\n',\
+          \ '')\n                    existing = base64.b64decode(raw_b64).decode('utf-8')\n\
+          \                    if normalise_dsl(existing) == normalise_dsl(dsl):\n\
+          \                        results.append({'app': app_name, 'status': 'Skipped',\
+          \ 'commit_id': 'N/A'})\n                        skipped += 1\n         \
+          \               continue\n                elif get_resp.status_code != 404:\n\
+          \                    results.append({'app': app_name, 'status': 'Error',\
+          \ 'commit_id': f'GitHub GET {get_resp.status_code}'})\n                \
+          \    errors += 1\n                    continue\n\n                # ── Step\
+          \ 3: GitHub PUT — push updated DSL ──────────────\n                payload\
+          \ = {\n                    'message': f'sync({now_ts}): {app_name}',\n \
+          \                   'content': base64.b64encode(dsl.encode('utf-8')).decode('utf-8'),\n\
+          \                    'branch':  GITHUB_BRANCH,\n                }\n    \
+          \            if sha:\n                    payload['sha'] = sha   # required\
+          \ for updates; omit for new files\n                put_resp = gh_client.put(gh_path,\
+          \ json=payload)\n                put_resp.raise_for_status()\n         \
+          \       commit_sha = put_resp.json().get('commit', {}).get('sha', 'unknown')[:7]\n\
+          \                results.append({'app': app_name, 'status': 'Success', 'commit_id':\
+          \ commit_sha})\n                synced += 1\n\n            except httpx.TimeoutException\
+          \ as exc:\n                # Which step timed out? Inspect exc URL if available\n\
+          \                where = 'Dify' if host in str(getattr(exc, 'request', ''))\
+          \ else 'GitHub'\n                results.append({'app': app_name, 'status':\
+          \ 'Error', 'commit_id': f'{where} timeout'})\n                errors +=\
+          \ 1\n\n            except Exception as exc:\n                results.append({'app':\
+          \ app_name, 'status': 'Error', 'commit_id': f'Error: {str(exc)[:80]}'})\n\
+          \                errors += 1\n\n    total   = len(results)\n    summary\
+          \ = f'Synced={synced} | Skipped={skipped} | Errors={errors} | Total={total}'\n\
+          \    return {\n        'synced_count':  synced,\n        'skipped_count':\
+          \ skipped,\n        'error_count':   errors,\n        'results':       \
+          \  results,\n        'summary':         summary,\n    }\n"
+        code_language: python3
+        desc: 'Pure-Python loop over all apps — no Dify iteration node. Eliminates
+          per-app Dify orchestration overhead and iteration-level timeout risk. Dual
+          persistent httpx clients (Dify + GitHub) created once and reused across
+          all apps — connection pool eliminates repeated TLS handshakes. Split timeouts:
+          Dify connect=3s/read=10s (internal network), GitHub connect=5s/read=8s/write=8s
+          (CDN). Early break on TOKEN_EXPIRED. Per-app errors are caught and logged;
+          loop continues. normalise_dsl() strips canvas UI fields so drag/resize does
+          not trigger commits. Returns synced_count, skipped_count, error_count, results[],
+          summary.'
+        outputs:
+          error_count:
+            children: null
+            type: number
+          results:
+            children: null
+            type: array[object]
+          skipped_count:
+            children: null
+            type: number
+          summary:
+            children: null
+            type: string
+          synced_count:
+            children: null
+            type: number
+        selected: false
+        title: SYNC_ALL_APPS
+        type: code
+        variables:
+        - value_selector:
+          - env
+          - DIFY_ACCESS_TOKEN
+          value_type: secret
+          variable: DIFY_ACCESS_TOKEN
+        - value_selector:
+          - env
+          - DIFY_HOST
+          value_type: string
+          variable: DIFY_HOST
+        - value_selector:
+          - env
+          - GITHUB_TOKEN
+          value_type: secret
+          variable: GITHUB_TOKEN
+        - value_selector:
+          - env
+          - GITHUB_REPO
+          value_type: string
+          variable: GITHUB_REPO
+        - value_selector:
+          - env
+          - GITHUB_OWNER
+          value_type: string
+          variable: GITHUB_OWNER
+        - value_selector:
+          - env
+          - GITHUB_BRANCH
+          value_type: string
+          variable: GITHUB_BRANCH
+        - value_selector:
+          - get_all_apps
+          - all_apps
+          value_type: array[object]
+          variable: all_apps
+      height: 353
+      id: sync_all_apps
+      position:
+        x: 680
+        y: 300
+      positionAbsolute:
+        x: 680
+        y: 300
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - sync_all_apps
+          - summary
+          value_type: string
+          variable: Summary
+        - value_selector:
+          - sync_all_apps
+          - synced_count
+          value_type: number
+          variable: SyncedCount
+        - value_selector:
+          - sync_all_apps
+          - skipped_count
+          value_type: number
+          variable: SkippedCount
+        - value_selector:
+          - sync_all_apps
+          - error_count
+          value_type: number
+          variable: ErrorCount
+        selected: false
+        title: End
+        type: end
+      height: 168
+      id: end_node
+      position:
+        x: 980
+        y: 300
+      positionAbsolute:
+        x: 980
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -269.55337265395247
+      y: -72.84527685945352
+      zoom: 0.9696491584881601
