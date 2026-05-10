@@ -1,0 +1,438 @@
+app:
+  description: 'To automate the identification of early-stage vulnerabilities in Dify
+    workflows. '
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: Dify Workflow QA Audit Agent
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1776928070641-source-1776769904914-target
+      source: '1776928070641'
+      sourceHandle: source
+      target: '1776769904914'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: http-request
+      id: 1775802276626-source-1776950745188-target
+      source: '1775802276626'
+      sourceHandle: source
+      target: '1776950745188'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: http-request
+        targetType: llm
+      id: 1776950745188-source-1776928070641-target
+      source: '1776950745188'
+      sourceHandle: source
+      target: '1776928070641'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: For translation
+        selected: false
+        title: Hi There
+        type: start
+        variables:
+        - allowed_file_extensions:
+          - .yml
+          allowed_file_types:
+          - custom
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: DSL_File
+          max_length: 48
+          options: []
+          required: false
+          type: file
+          variable: DSL_File
+        - label: user_query
+          max_length: 48
+          options: []
+          required: true
+          type: text-input
+          variable: user_query
+      height: 144
+      id: '1775802276626'
+      position:
+        x: -567.9394631989678
+        y: -165.24889102177673
+      positionAbsolute:
+        x: -567.9394631989678
+        y: -165.24889102177673
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1776928070641'
+          - text
+          value_type: string
+          variable: result
+        selected: false
+        title: End 2
+        type: end
+      height: 90
+      id: '1776769904914'
+      position:
+        x: 514.4553995704619
+        y: -94.97816244887967
+      positionAbsolute:
+        x: 514.4553995704619
+        y: -94.97816244887967
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: c55bc8ff-49c1-4033-a82d-697254a733b6
+          role: system
+          text: 'You are a senior QA automation expert analyzing a Dify DSL workflow.
+
+
+            STRICT INSTRUCTIONS:
+
+            - The DSL file is the ONLY source of truth
+
+            - Do NOT infer, assume, or generate any data not present
+
+            - You MUST evaluate ALL nodes — do not stop early
+
+            - Ensure COMPLETE coverage of all input and file upload nodes
+
+
+            TASK:
+
+
+            1. USER INPUT VALIDATION
+
+            Check for:
+
+            - Required fields
+
+            - Data types
+
+            - Length constraints
+
+            - Format validation
+
+            --------------------------------------------------
+
+            2. FILE UPLOAD VALIDATION
+
+            Check for each input node where file upload is applied:
+
+            - Number of files allowed
+
+            - Allowed file types
+
+            - Single file size limit
+
+            - Total upload size limit
+
+
+            --------------------------------------------------
+
+            3. MULTILINGUAL LITERAL VALIDATION (ENGLISH + JAPANESE)
+
+
+            Check all user-facing text (prompts, messages, labels, responses):
+
+
+            - Identify literals in English
+
+            - Verify if corresponding Japanese translation exists
+
+            - Identify literals in Japanese
+
+            - Verify if corresponding English translation exists
+
+
+            Flag:
+
+            - Missing translations
+
+            - Partial translations
+
+            - Hardcoded single-language text
+
+
+            --------------------------------------------------
+
+
+            4. ERROR HANDLING VALIDATION
+
+
+            Check across ALL nodes:
+
+
+            - Whether error scenarios are handled (API failure, invalid input, empty
+            response, etc.)
+
+            - Presence of fallback paths or error branches
+
+            - User-friendly error messages defined
+
+            - Generic vs specific error messaging
+
+
+            --------------------------------------------------
+
+
+            5. PROMPT INJECTION & INPUT SECURITY VALIDATION
+
+
+            Analyze how user inputs are used in prompts and workflows:
+
+
+            Check for:
+
+            - Direct insertion of user input into prompts without sanitization
+
+            - Lack of input filtering or validation before LLM usage
+
+            - Absence of system-level guardrails or instructions
+
+            - Susceptibility to prompt injection (e.g., "ignore previous instructions",
+            "act as system", etc.)
+
+            - Unsafe variable interpolation in prompts
+
+            - No separation between system instructions and user input
+
+
+            Flag:
+
+            - Unsafe prompt construction
+
+            - Missing sanitization
+
+            - Lack of guardrails
+
+            - Potential injection vectors
+
+
+            OUTPUT:
+
+            Provide Five separate tables:
+
+
+            --------------------------------------------------
+
+            TABLE 1: USER INPUT VALIDATION
+
+
+            | Node Name | Input Variable | Required | Data Type | Length Constraints
+            | Format Validation | Missing Validation | Risk Level |
+
+
+            --------------------------------------------------
+
+            TABLE 2: FILE UPLOAD VALIDATION
+
+
+            | Node Name | File Variable | Max Files | File Types | Single File Size
+            | Total Size Limit | Missing Validation | Risk Level |
+
+
+            --------------------------------------------------
+
+            --------------------------------------------------
+
+            TABLE 3: MULTILINGUAL VALIDATION
+
+
+            | Node Name | Text/Field | English Present | Japanese Present | Missing
+            Translation | Risk Level |
+
+
+            --------------------------------------------------
+
+            TABLE 4: ERROR HANDLING VALIDATION
+
+
+            | Node Name | Error Scenario Covered | Error Message Defined | Fallback
+            Present | Missing Handling | Risk Level |
+
+
+            --------------------------------------------------
+
+            TABLE 5: PROMPT INJECTION & SECURITY
+
+
+            | Node Name | User Input Used in Prompt | Sanitization Present | Guardrails
+            Present | Injection Risk | Missing Protection | Risk Level |
+
+
+            --------------------------------------------------
+
+
+
+            RISK LOGIC:
+
+            - High → No validation present
+
+            - Medium → Partial validation
+
+            - Low → Sufficient validation
+
+
+            IMPORTANT:
+
+            - If any field is not explicitly defined → write "Not Defined"
+
+            - Keep output crisp, no explanations outside tables'
+        - id: 5c49e040-4c44-45e2-a153-fe8992f4109f
+          role: user
+          text: 'Here is the DSL file to audit: {{#1776950745188.body#}}'
+        selected: false
+        title: LLM
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - '1776950745188'
+            - files
+          enabled: true
+      height: 90
+      id: '1776928070641'
+      position:
+        x: 195.62944026522246
+        y: -120.00635648385128
+      positionAbsolute:
+        x: 195.62944026522246
+        y: -120.00635648385128
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: []
+          type: none
+        desc: ''
+        headers: ''
+        method: get
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: true
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+        title: HTTP Request
+        type: http-request
+        url: '{{#1775802276626.DSL_File.url#}}'
+        variables: []
+      height: 126
+      id: '1776950745188'
+      position:
+        x: -175.83558015142867
+        y: -138.44929722503105
+      positionAbsolute:
+        x: -175.83558015142867
+        y: -138.44929722503105
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 709.4338986947707
+      y: 357.9855536236104
+      zoom: 0.9326047290118551
