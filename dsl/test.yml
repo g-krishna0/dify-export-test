@@ -1705,54 +1705,68 @@ workflow:
       width: 244
     - data:
         code: "import re\nimport json\n\ndef main(input_data: str, lang: str, static_data:\
-          \ dict) -> dict:\n    try:\n        # 1. Input Handle\n        raw_text\
-          \ = \"\"\n        if isinstance(input_data, dict):\n            raw_text\
-          \ = input_data.get(\"text\", str(input_data))\n        else:\n         \
-          \   raw_text = str(input_data)\n\n        # 2. Block Extraction\n      \
-          \  blocks = re.findall(r'\\{[^{}]*Supplier / Business Partner Name:[^{}]*\\\
-          }', raw_text, re.DOTALL)\n        if not blocks:\n            blocks = [raw_text]\n\
-          \n        result_list = []\n        client_selection_lines = [\"Client No\
-          \ | Client name | File Name | Status\"]\n        display_counter = 0\n \
-          \       target_val = \"格納済\"\n        empty_vals = [\"\", \"0\", \"null\"\
-          , \"nan\", \"-\", \"none\"]\n\n        for block in blocks:\n          \
-          \  def get_v(keyword):\n                pattern = r'[\"\\']?[^\"\\',:{}]*'\
-          \ + re.escape(keyword) + r'[^\"\\',:{}]*[\"\\']?\\s*:\\s*[\"\\']?([^\"\\\
-          ',}]+)[\"\\']?'\n                match = re.search(pattern, block, re.IGNORECASE\
-          \ | re.DOTALL)\n                if match:\n                    val = match.group(1).strip()\n\
-          \                    return val if val.lower() not in empty_vals else \"\
-          \"\n                return \"\"\n\n            name = get_v(\"Supplier /\
-          \ Business Partner Name\")\n            if not name or name.lower() in [\"\
-          total\", \"sum\"]: continue\n\n            # --- \U0001F525 UPDATED PRIORITY\
-          \ LOGIC \U0001F525 ---\n            # Priority 1: Completion Confirmation\
-          \ (As you requested)\n            comp_confirm = get_v(\"Completion Confirmation\"\
-          )\n            # Secondary check: Group A (After Rank Up & Estimated Amount)\n\
-          \            aru = get_v(\"After Rank Up\")\n            est = get_v(\"\
-          Estimated Amount\")\n            # Neg Result (Lowest value now)\n     \
-          \       neg = get_v(\"Negotiation Result\")\n\n            # Logic: Primary\
-          \ value is \"Completed\"\n            if comp_confirm.lower() == \"completed\"\
-          :\n                status = \"File placed\"\n            elif (aru and est)\
-          \ or neg:\n                # Agar \"Completed\" nahi hai, tab baaki cheezein\
-          \ check karenge\n                status = \"File placed\"\n            else:\n\
-          \                status = \"Error\"\n\n            # --- \U0001F4C2 FILE\
-          \ SCANNING ---\n            checks = [\n                (\"Quote Template\"\
-          , \"Quotation Calculation\"),\n                (\"Unit Price Form\", \"\
-          Unit Price Revision\"),\n                (\"Expense Policy\", \"Business\
-          \ Travel\"),\n                (\"Expense Policy\", \"Travel Expenses\")\n\
-          \            ]\n\n            added_for_row = set()\n            for display,\
-          \ key_kw in checks:\n                if target_val in get_v(key_kw) and\
-          \ display not in added_for_row:\n                    display_counter +=\
-          \ 1\n                    c_id = f\"{display_counter:02d}\"\n           \
-          \         client_selection_lines.append(f\"{c_id} | {name} | {display} |\
-          \ {status}\")\n                    result_list.append({\n              \
-          \          \"client_id\": c_id, \"name\": name, \"file_name\": display,\
-          \ \"status\": status\n                    })\n                    added_for_row.add(display)\n\
-          \n        return {\n            \"result\": result_list,\n            \"\
-          client_selection\": \"\\n\".join(client_selection_lines),\n            \"\
-          clients_available\": \"True\" if result_list else \"False\",\n         \
-          \   \"error\": \"false\"\n        }\n\n    except Exception as e:\n    \
-          \    return {\n            \"result\": [], \"client_selection\": f\"Logic\
-          \ Error: {str(e)}\", \n            \"clients_available\": \"False\", \"\
-          error\": \"true\"\n        }"
+          \ dict) -> dict:\n    try:\n        # 1. Input Parsing\n        if isinstance(input_data,\
+          \ dict):\n            raw_text = input_data.get(\"text\", str(input_data))\n\
+          \        else:\n            raw_text = str(input_data)\n\n        blocks\
+          \ = re.findall(r'\\{[^{}]*Supplier / Business Partner Name:[^{}]*\\}', raw_text,\
+          \ re.DOTALL)\n        if not blocks:\n            return {\"result\": [],\
+          \ \"client_selection\": \"No data found\", \"error\": \"false\", \"clients_available\"\
+          : \"False\"}\n\n        merged_data = {}\n        target_text = \"格納済\"\n\
+          \n        for block in blocks:\n            # Flexible Keyword Finder\n\
+          \            def get_val_flex(keyword):\n                pattern = r'[^,:{}]*'\
+          \ + re.escape(keyword) + r'[^:]*:\\s*([^,}]+)'\n                match =\
+          \ re.search(pattern, block, re.IGNORECASE)\n                if match:\n\
+          \                    return match.group(1).strip().strip('\"').strip(\"\
+          '\")\n                return \"\"\n\n            name = get_val_flex(\"\
+          Supplier / Business Partner Name\")\n            if not name or name.lower()\
+          \ in [\"total\", \"sum\"]: continue\n\n            # Grouping (EN & JP Merge)\n\
+          \            base_name = name.replace(\"Co., Ltd.\", \"\").replace(\"株式会社\"\
+          , \"\").replace(\"Co.\", \"\").strip()\n            \n            if base_name\
+          \ not in merged_data:\n                merged_data[base_name] = {\n    \
+          \                \"en_name\": \"\", \"jp_name\": \"\", \n              \
+          \      \"files\": set(), \"has_group_a\": False, \"has_group_b\": False\n\
+          \                }\n\n            if bool(re.search(r'[\\u3040-\\u30ff\\\
+          u3400-\\u4dbf\\u4e00-\\u9fff]', name)):\n                merged_data[base_name][\"\
+          jp_name\"] = name\n            else:\n                merged_data[base_name][\"\
+          en_name\"] = name\n\n            # STATUS LOGIC\n            if get_val_flex(\"\
+          After Rank Up\") and get_val_flex(\"Estimated Amount\"):\n             \
+          \   merged_data[base_name][\"has_group_a\"] = True\n            if get_val_flex(\"\
+          Negotiation Result\") or get_val_flex(\"Completion Confirmation\"):\n  \
+          \              merged_data[base_name][\"has_group_b\"] = True\n\n      \
+          \      # --- 5 BUCKETS SCANNING ---\n            # 1. Quote Template\n \
+          \           if target_text in get_val_flex(\"Quotation Calculation Sheet\"\
+          ):\n                merged_data[base_name][\"files\"].add(\"Quote Template\"\
+          )\n            \n            # 2. Unit Price Form\n            if target_text\
+          \ in get_val_flex(\"Unit Price Revision Sheet\"):\n                merged_data[base_name][\"\
+          files\"].add(\"Unit Price Form\")\n            \n            # 3. Expense\
+          \ Policy\n            if target_text in get_val_flex(\"Business Travel\"\
+          ) or target_text in get_val_flex(\"Travel Expenses\"):\n               \
+          \ merged_data[base_name][\"files\"].add(\"Expense Policy\")\n\n        \
+          \    # 4. Insurance Enrollment\n            if target_text in get_val_flex(\"\
+          Insurance Enrollment Status\"):\n                merged_data[base_name][\"\
+          files\"].add(\"Insurance Enrollment\")\n\n            # 5. Negotiation Evidence\n\
+          \            if target_text in get_val_flex(\"Negotiation Evidence\"):\n\
+          \                merged_data[base_name][\"files\"].add(\"Negotiation Evidence\"\
+          )\n\n        # 2. Result Construction\n        result_list = []\n      \
+          \  client_selection_lines = [\"Client No | Client name | File Name | Status\"\
+          ]\n        display_counter = 0\n\n        for base, data in merged_data.items():\n\
+          \            # Syntax Fixed: Added missing 'else' logic\n            final_status\
+          \ = \"File placed\" if (data[\"has_group_a\"] or data[\"has_group_b\"])\
+          \ else \"Error\"\n            \n            display_name = data[\"en_name\"\
+          ] if (lang == \"en\" and data[\"en_name\"]) else data[\"jp_name\"]\n   \
+          \         if not display_name: display_name = base\n\n            if data[\"\
+          files\"]:\n                for f_name in sorted(list(data[\"files\"])):\n\
+          \                    display_counter += 1\n                    c_id = f\"\
+          {display_counter:02d}\"\n                    client_selection_lines.append(f\"\
+          {c_id} | {display_name} | {f_name} | {final_status}\")\n               \
+          \     result_list.append({\n                        \"client_id\": c_id,\
+          \ \n                        \"name\": display_name, \n                 \
+          \       \"file_name\": f_name, \n                        \"status\": final_status\n\
+          \                    })\n\n        return {\n            \"result\": result_list,\n\
+          \            \"client_selection\": \"\\n\".join(client_selection_lines),\n\
+          \            \"clients_available\": \"True\" if result_list else \"False\"\
+          ,\n            \"error\": \"false\"\n        }\n\n    except Exception as\
+          \ e:\n        return {\"error\": \"true\", \"message\": str(e)}"
         code_language: python3
         desc: This code node takes in the input from the excel extractor workflow
           and extract the client names,File name and  Quote Status in numeric order.
@@ -1969,6 +1983,6 @@ workflow:
       type: custom
       width: 244
     viewport:
-      x: -738.2404707006276
-      y: 250.4366775752416
-      zoom: 0.41189066459147006
+      x: -684.5959744555611
+      y: 184.84014067262808
+      zoom: 0.46083855711519284
