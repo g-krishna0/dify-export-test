@@ -1,0 +1,730 @@
+app:
+  description: 'Exports Dify DSLs on every cron run. Filters by updated_at via .sync_state.
+    v29: env var declarations for tokens restored to value_type=secret (so Dify injects
+    token values at runtime); code-node bindings remain value_type=string (so Dify
+    passes the values instead of masking them). Both are required together.'
+  icon: 🕐
+  icon_background: '#E0F2FE'
+  mode: workflow
+  name: Dify Dsl Github Sync Cron OPTIMISED - v30
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: Static Bearer token — cloud.dify.ai DevTools > Application > Local
+      Storage > access_token
+    id: env-dify-access-token
+    name: DIFY_ACCESS_TOKEN
+    selector:
+    - env
+    - DIFY_ACCESS_TOKEN
+    value: ''
+    value_type: secret
+  - description: Dify host URL (e.g. http://172.30.116.165)
+    id: env-dify-host
+    name: DIFY_HOST
+    selector:
+    - env
+    - DIFY_HOST
+    value: http://172.30.116.165
+    value_type: string
+  - description: GitHub Personal Access Token with repo scope
+    id: env-github-token
+    name: GITHUB_TOKEN
+    selector:
+    - env
+    - GITHUB_TOKEN
+    value: ''
+    value_type: secret
+  - description: GitHub repository owner or organisation
+    id: env-github-owner
+    name: GITHUB_OWNER
+    selector:
+    - env
+    - GITHUB_OWNER
+    value: g-krishna0
+    value_type: string
+  - description: GitHub repository name
+    id: env-github-repo
+    name: GITHUB_REPO
+    selector:
+    - env
+    - GITHUB_REPO
+    value: dify-export-test
+    value_type: string
+  - description: Target branch for commits
+    id: env-github-branch
+    name: GITHUB_BRANCH
+    selector:
+    - env
+    - GITHUB_BRANCH
+    value: main
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions: []
+      allowed_file_types: []
+      allowed_file_upload_methods: []
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: code
+      id: e-start-getapps
+      source: start
+      sourceHandle: source
+      target: get_all_apps
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: iteration
+      id: e-getapps-iter
+      source: get_all_apps
+      sourceHandle: source
+      target: iter_node
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: iteration
+        targetType: code
+      id: e-iter-updatestate
+      source: iter_node
+      sourceHandle: source
+      target: update_sync_state
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: code
+        targetType: end
+      id: e-updatestate-end
+      source: update_sync_state
+      sourceHandle: source
+      target: end_node
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: iter_node
+        sourceType: iteration-start
+        targetType: code
+      id: e-iterstart-sync
+      source: iter_nodestart
+      sourceHandle: source
+      target: sync_one_app
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    - data:
+        isInIteration: true
+        isInLoop: false
+        iteration_id: iter_node
+        sourceType: iteration-start
+        targetType: code
+      id: iter_nodestart0-source-sync_one_app-target
+      source: iter_nodestart0
+      sourceHandle: source
+      target: sync_one_app
+      targetHandle: target
+      type: custom
+      zIndex: 1002
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables: []
+      height: 52
+      id: start
+      position:
+        x: 30
+        y: 300
+      positionAbsolute:
+        x: 30
+        y: 300
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        code: "import httpx\nimport base64\nimport json\n\ndef main(DIFY_ACCESS_TOKEN:\
+          \ str, DIFY_HOST: str,\n         GITHUB_TOKEN: str, GITHUB_OWNER: str,\n\
+          \         GITHUB_REPO: str, GITHUB_BRANCH: str):\n\n    PAGE_SIZE = 100\n\
+          \    MAX_PAGES = 100\n    BUFFER_S  = 60\n\n    # ── FIX B+D: Guard all\
+          \ env vars before any HTTP call ──────────────\n    missing = []\n    if\
+          \ not (DIFY_ACCESS_TOKEN or '').strip():\n        missing.append('DIFY_ACCESS_TOKEN')\n\
+          \    if not (DIFY_HOST or '').strip():\n        missing.append('DIFY_HOST')\n\
+          \    if not (GITHUB_TOKEN or '').strip():\n        missing.append('GITHUB_TOKEN')\n\
+          \    if not (GITHUB_OWNER or '').strip():\n        missing.append('GITHUB_OWNER')\n\
+          \    if not (GITHUB_REPO or '').strip():\n        missing.append('GITHUB_REPO')\n\
+          \    if not (GITHUB_BRANCH or '').strip():\n        missing.append('GITHUB_BRANCH')\n\
+          \    if missing:\n        return {\n            'filtered_apps':  [],\n\
+          \            'total_apps':     0,\n            'filtered_count': 0,\n  \
+          \          'last_sync_ts':   0,\n            'sync_state_sha': '',\n   \
+          \         'status': f'Error: missing env vars — {\", \".join(missing)}'\n\
+          \        }\n\n    host = DIFY_HOST.strip().rstrip('/')\n    dify_headers\
+          \   = {'Authorization': f'Bearer {DIFY_ACCESS_TOKEN.strip()}'}\n    github_headers\
+          \ = {\n        'Authorization':        f'Bearer {GITHUB_TOKEN.strip()}',\n\
+          \        'Accept':               'application/vnd.github+json',\n      \
+          \  'X-GitHub-Api-Version': '2022-11-28',\n    }\n    # ── FIX C: raise GitHub\
+          \ connect timeout for cloud sandbox cold-start ──\n    dify_timeout   =\
+          \ httpx.Timeout(connect=5.0,  read=10.0, write=5.0, pool=5.0)\n    github_timeout\
+          \ = httpx.Timeout(connect=10.0, read=10.0, write=5.0, pool=5.0)\n\n    all_apps\
+          \       = []\n    last_sync_ts   = 0\n    sync_state_sha = ''\n    page\
+          \           = 1\n    state_status   = ''\n\n    # ── FIX A: Call Dify FIRST\
+          \ — its failure gives a clearer error ──────\n    # GitHub .sync_state is\
+          \ read AFTER, with graceful fallback on timeout.\n    try:\n        with\
+          \ httpx.Client(timeout=dify_timeout) as dify_client:\n            while\
+          \ page <= MAX_PAGES:\n                resp = dify_client.get(\n        \
+          \            f'{host}/console/api/apps?page={page}&limit={PAGE_SIZE}',\n\
+          \                    headers=dify_headers\n                )\n         \
+          \       if resp.status_code == 401:\n                    return {\n    \
+          \                    'filtered_apps':  [],\n                        'total_apps':\
+          \     0,\n                        'filtered_count': 0,\n               \
+          \         'last_sync_ts':   0,\n                        'sync_state_sha':\
+          \ '',\n                        'status': 'Error: DIFY_ACCESS_TOKEN expired\
+          \ — update it in Environment Variables'\n                    }\n       \
+          \         resp.raise_for_status()\n                body  = resp.json()\n\
+          \                batch = body.get('data', [])\n                all_apps.extend({\n\
+          \                    'id':         a['id'],\n                    'name':\
+          \         a['name'],\n                    'updated_at': a.get('updated_at',\
+          \ 0)\n                } for a in batch)\n                if not body.get('has_more',\
+          \ False) or not batch:\n                    break\n                page\
+          \ += 1\n\n    except httpx.TimeoutException:\n        return {\n       \
+          \     'filtered_apps':  [],\n            'total_apps':     0,\n        \
+          \    'filtered_count': 0,\n            'last_sync_ts':   0,\n          \
+          \  'sync_state_sha': '',\n            'status': f'Error: Dify API timeout\
+          \ — verify DIFY_HOST ({host}) is reachable from the sandbox'\n        }\n\
+          \    except Exception as e:\n        detail = f' | {e.response.text}' if\
+          \ hasattr(e, 'response') else ''\n        return {\n            'filtered_apps':\
+          \  [],\n            'total_apps':     0,\n            'filtered_count':\
+          \ 0,\n            'last_sync_ts':   0,\n            'sync_state_sha': '',\n\
+          \            'status': f'Error: Dify API — {str(e)}{detail}'\n        }\n\
+          \n    # ── GitHub .sync_state — graceful fallback on any failure ────────\n\
+          \    # If GitHub is unreachable: last_sync_ts stays 0 → all apps processed.\n\
+          \    # This is safe: worst case we re-check all apps this run.\n    try:\n\
+          \        with httpx.Client(timeout=github_timeout, headers=github_headers)\
+          \ as gh_client:\n            state_url = (\n                f'https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPO}'\n\
+          \                f'/contents/dsl/.sync_state?ref={GITHUB_BRANCH}'\n    \
+          \        )\n            sr = gh_client.get(state_url)\n            if sr.status_code\
+          \ == 200:\n                sdata          = sr.json()\n                sync_state_sha\
+          \ = sdata.get('sha', '')\n                raw            = base64.b64decode(\n\
+          \                    sdata.get('content', '').replace('\\n', '')\n     \
+          \           ).decode('utf-8')\n                state_obj      = json.loads(raw)\n\
+          \                last_sync_ts   = state_obj.get('last_sync_ts', 0)\n   \
+          \             state_status   = f'state loaded (last_sync={last_sync_ts})'\n\
+          \            elif sr.status_code == 404:\n                state_status =\
+          \ 'first run — no .sync_state yet, processing all apps'\n            else:\n\
+          \                state_status = f'GitHub state read error {sr.status_code}\
+          \ — processing all apps'\n    except httpx.TimeoutException:\n        state_status\
+          \ = 'WARNING: GitHub .sync_state timeout — processing all apps this run'\n\
+          \    except Exception as e:\n        state_status = f'WARNING: GitHub .sync_state\
+          \ error ({str(e)[:60]}) — processing all apps'\n\n    # ── Filter by updated_at\
+          \ ─────────────────────────────────────────────\n    capped        = page\
+          \ > MAX_PAGES\n    cutoff        = last_sync_ts - BUFFER_S\n    filtered_apps\
+          \ = sorted(\n        [a for a in all_apps if a.get('updated_at', 0) > cutoff],\n\
+          \        key=lambda a: a.get('updated_at', 0),\n        reverse=True\n \
+          \   )[:100]\n    total         = len(all_apps)\n    fcount        = len(filtered_apps)\n\
+          \    status        = (\n        f'OK: {total} total | {fcount} to sync |\
+          \ {state_status}'\n        + (' | WARNING: hit page cap' if capped else\
+          \ '')\n    )\n    return {\n        'filtered_apps':  filtered_apps,\n \
+          \       'total_apps':     total,\n        'filtered_count': fcount,\n  \
+          \      'last_sync_ts':   last_sync_ts,\n        'sync_state_sha': sync_state_sha,\n\
+          \        'status':         status\n    }\n"
+        code_language: python3
+        desc: Fetches all apps from Dify (PAGE_SIZE=100) and reads dsl/.sync_state
+          from GitHub to get last_sync_ts. Filters to only apps where updated_at >
+          last_sync_ts - 60s. First run (no .sync_state) passes all apps. Hard-fails
+          on 401. Outputs filtered_apps, total_apps, filtered_count, last_sync_ts,
+          sync_state_sha, status.
+        outputs:
+          filtered_apps:
+            children: null
+            type: array[object]
+          filtered_count:
+            children: null
+            type: number
+          last_sync_ts:
+            children: null
+            type: number
+          status:
+            children: null
+            type: string
+          sync_state_sha:
+            children: null
+            type: string
+          total_apps:
+            children: null
+            type: number
+        selected: false
+        title: GET_ALL_APPS
+        type: code
+        variables:
+        - value_selector:
+          - env
+          - DIFY_ACCESS_TOKEN
+          value_type: string
+          variable: DIFY_ACCESS_TOKEN
+        - value_selector:
+          - env
+          - DIFY_HOST
+          value_type: string
+          variable: DIFY_HOST
+        - value_selector:
+          - env
+          - GITHUB_TOKEN
+          value_type: string
+          variable: GITHUB_TOKEN
+        - value_selector:
+          - env
+          - GITHUB_OWNER
+          value_type: string
+          variable: GITHUB_OWNER
+        - value_selector:
+          - env
+          - GITHUB_REPO
+          value_type: string
+          variable: GITHUB_REPO
+        - value_selector:
+          - env
+          - GITHUB_BRANCH
+          value_type: string
+          variable: GITHUB_BRANCH
+      height: 208
+      id: get_all_apps
+      position:
+        x: 330
+        y: 300
+      positionAbsolute:
+        x: 330
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        desc: ''
+        error_handle_mode: continue-on-error
+        height: 297
+        is_parallel: false
+        iterator_input_type: array[object]
+        iterator_selector:
+        - get_all_apps
+        - filtered_apps
+        output_selector:
+        - sync_one_app
+        - result
+        output_type: array[object]
+        parallel_nums: 1
+        selected: false
+        start_node_id: iter_nodestart0
+        title: Iteration — filtered apps only, parallel_nums=2
+        type: iteration
+      height: 297
+      id: iter_node
+      position:
+        x: 630
+        y: 282
+      positionAbsolute:
+        x: 630
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 411
+      zIndex: 1
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: iter_nodestart
+      parentId: iter_node
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 654
+        y: 350
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    - data:
+        code: "import httpx\nimport base64\nimport re\nfrom datetime import datetime,\
+          \ timezone\n\n# ── UI field stripper ────────────────────────────────────────────\n\
+          # Strips canvas-only keys so cosmetic drag/resize never triggers a commit.\n\
+          UI_KEYS = {\n    'position', 'positionAbsolute', 'selected', 'zIndex',\n\
+          \    'height', 'width', 'sourcePosition', 'targetPosition',\n    'draggable',\
+          \ 'selectable', 'viewport',\n}\nUI_PAT = re.compile(\n    r'^(\\s*)(' +\
+          \ '|'.join(UI_KEYS) + r')(\\s*:.*)$'\n)\n\ndef normalise_dsl(raw: str) ->\
+          \ str:\n    \"\"\"Remove canvas-only UI fields before comparison.\"\"\"\n\
+          \    out, skip_indent = [], None\n    for line in raw.splitlines():\n  \
+          \      if not line.strip():\n            out.append(line)\n            skip_indent\
+          \ = None\n            continue\n        indent = len(line) - len(line.lstrip())\n\
+          \        if skip_indent is not None:\n            if indent > skip_indent:\n\
+          \                continue\n            skip_indent = None\n        if UI_PAT.match(line):\n\
+          \            skip_indent = indent\n            continue\n        out.append(line)\n\
+          \    return '\\n'.join(out)\n\n\ndef main(\n    DIFY_ACCESS_TOKEN: str,\
+          \ DIFY_HOST: str,\n    GITHUB_TOKEN: str, GITHUB_REPO: str,\n    GITHUB_OWNER:\
+          \ str, GITHUB_BRANCH: str,\n    app: dict\n):\n    app_id   = app.get('id',\
+          \   '')\n    app_name = app.get('name', 'unknown')\n    host     = (DIFY_HOST\
+          \ or '').strip().rstrip('/')\n    now_ts   = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')\n\
+          \n    # Guard: missing tokens produce 'Illegal header value' — catch early\n\
+          \    _tok_d = (DIFY_ACCESS_TOKEN or '').strip()\n    _tok_g = (GITHUB_TOKEN\
+          \ or '').strip()\n    if not host or not _tok_d or not _tok_g:\n       \
+          \ _m = [v for v,val in [('DIFY_HOST',host),('DIFY_ACCESS_TOKEN',_tok_d),('GITHUB_TOKEN',_tok_g)]\
+          \ if not val]\n        return {'result': {'app': app_name, 'status': 'Error',\
+          \ 'commit_id': f'Missing env: {\",\".join(_m)}'}}\n\n    clean   = ''.join(\n\
+          \        c for c in app_name if c.isalnum() or c in (' ', '_')\n    ).strip().replace('\
+          \ ', '_')\n    gh_path = (\n        f'https://api.github.com/repos/{(GITHUB_OWNER\
+          \ or \"\").strip()}/{(GITHUB_REPO or \"\").strip()}'\n        f'/contents/dsl/{clean}.yml'\n\
+          \    )\n\n    dify_headers   = {'Authorization': f'Bearer {_tok_d}'}\n \
+          \   github_headers = {\n        'Authorization':        f'Bearer {_tok_g}',\n\
+          \        'Accept':               'application/vnd.github+json',\n      \
+          \  'X-GitHub-Api-Version': '2022-11-28',\n    }\n    dify_timeout   = httpx.Timeout(connect=3.0,\
+          \ read=10.0, write=5.0,  pool=5.0)\n    github_timeout = httpx.Timeout(connect=10.0,\
+          \ read=8.0,  write=8.0,  pool=5.0)\n\n    try:\n        # One client context\
+          \ covering all 3 HTTP calls.\n        # Single TLS handshake per app invocation.\n\
+          \        with httpx.Client(timeout=dify_timeout) as dify_client, \\\n  \
+          \           httpx.Client(timeout=github_timeout, headers=github_headers)\
+          \ as gh_client:\n\n            # ── Step 1: Export DSL from Dify ──────────────────────────\n\
+          \            dr = dify_client.get(\n                f'{host}/console/api/apps/{app_id}/export',\n\
+          \                headers=dify_headers\n            )\n            if dr.status_code\
+          \ == 401:\n                return {'result': {\n                    'app':\
+          \       app_name,\n                    'status':    'Error',\n         \
+          \           'commit_id': 'TOKEN_EXPIRED'\n                }}\n         \
+          \   dr.raise_for_status()\n            ct  = dr.headers.get('content-type',\
+          \ '')\n            dsl = dr.json().get('data', '') if 'json' in ct else\
+          \ dr.text\n\n            # ── Step 2: GitHub GET — fetch existing file ─────────────────\n\
+          \            sha      = None\n            get_resp = gh_client.get(gh_path)\n\
+          \            if get_resp.status_code == 200:\n                gdata   =\
+          \ get_resp.json()\n                sha     = gdata.get('sha')\n        \
+          \        raw_b64 = gdata.get('content', '').replace('\\n', '')\n       \
+          \         existing = base64.b64decode(raw_b64).decode('utf-8')\n       \
+          \         # normalise_dsl is the safety net:\n                # even if\
+          \ updated_at triggered a false positive, this prevents\n               \
+          \ # committing an identical DSL (only UI fields changed).\n            \
+          \    if normalise_dsl(existing) == normalise_dsl(dsl):\n               \
+          \     return {'result': {\n                        'app':       app_name,\n\
+          \                        'status':    'Skipped',\n                     \
+          \   'commit_id': 'N/A'\n                    }}\n            elif get_resp.status_code\
+          \ != 404:\n                return {'result': {\n                    'app':\
+          \       app_name,\n                    'status':    'Error',\n         \
+          \           'commit_id': f'GitHub GET {get_resp.status_code}'\n        \
+          \        }}\n\n            # ── Step 3: GitHub PUT — push updated DSL ──────────────────\n\
+          \            payload = {\n                'message': f'sync({now_ts}): {app_name}',\n\
+          \                'content': base64.b64encode(\n                    dsl.encode('utf-8')\n\
+          \                ).decode('utf-8'),\n                'branch': GITHUB_BRANCH,\n\
+          \            }\n            if sha:\n                payload['sha'] = sha\
+          \   # required for updates; omit for new files\n            put_resp = gh_client.put(gh_path,\
+          \ json=payload)\n            put_resp.raise_for_status()\n            commit_sha\
+          \ = put_resp.json().get('commit', {}).get('sha', 'unknown')[:7]\n      \
+          \      return {'result': {\n                'app':       app_name,\n   \
+          \             'status':    'Success',\n                'commit_id': commit_sha\n\
+          \            }}\n\n    except httpx.TimeoutException as exc:\n        where\
+          \ = 'Dify' if host in str(getattr(exc, 'request', '')) else 'GitHub'\n \
+          \       return {'result': {\n            'app':       app_name,\n      \
+          \      'status':    'Error',\n            'commit_id': f'{where} timeout'\n\
+          \        }}\n    except Exception as exc:\n        return {'result': {\n\
+          \            'app':       app_name,\n            'status':    'Error',\n\
+          \            'commit_id': f'Error: {str(exc)[:80]}'\n        }}\n"
+        code_language: python3
+        desc: 'One invocation per filtered app — own 120s sandbox. Single httpx.Client
+          for all 3 calls (one TLS handshake). Split timeouts: Dify connect=3s/ read=10s,
+          GitHub connect=5s/read=8s/write=8s. normalise_dsl() catches false positives
+          from updated_at filter — only real DSL changes commit. Returns result={app,
+          status, commit_id}.'
+        isInIteration: true
+        isInLoop: false
+        iteration_id: iter_node
+        outputs:
+          result:
+            children: null
+            type: object
+        selected: false
+        title: SYNC_ONE_APP
+        type: code
+        variables:
+        - value_selector:
+          - env
+          - DIFY_ACCESS_TOKEN
+          value_type: string
+          variable: DIFY_ACCESS_TOKEN
+        - value_selector:
+          - env
+          - DIFY_HOST
+          value_type: string
+          variable: DIFY_HOST
+        - value_selector:
+          - env
+          - GITHUB_TOKEN
+          value_type: string
+          variable: GITHUB_TOKEN
+        - value_selector:
+          - env
+          - GITHUB_REPO
+          value_type: string
+          variable: GITHUB_REPO
+        - value_selector:
+          - env
+          - GITHUB_OWNER
+          value_type: string
+          variable: GITHUB_OWNER
+        - value_selector:
+          - env
+          - GITHUB_BRANCH
+          value_type: string
+          variable: GITHUB_BRANCH
+        - value_selector:
+          - iter_node
+          - item
+          value_type: object
+          variable: app
+      height: 208
+      id: sync_one_app
+      parentId: iter_node
+      position:
+        x: 94
+        y: 68
+      positionAbsolute:
+        x: 724
+        y: 350
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+      zIndex: 1002
+    - data:
+        code: "import httpx\nimport base64\nimport json\nfrom datetime import datetime,\
+          \ timezone\n\ndef main(\n    GITHUB_TOKEN: str, GITHUB_OWNER: str,\n   \
+          \ GITHUB_REPO: str, GITHUB_BRANCH: str,\n    total_apps: int, filtered_count:\
+          \ int,\n    sync_state_sha: str\n):\n    # ── Guard: check required vars\
+          \ before any HTTP call ────────────────\n    missing = []\n    if not (GITHUB_TOKEN\
+          \ or '').strip():\n        missing.append('GITHUB_TOKEN')\n    if not (GITHUB_OWNER\
+          \ or '').strip():\n        missing.append('GITHUB_OWNER')\n    if not (GITHUB_REPO\
+          \ or '').strip():\n        missing.append('GITHUB_REPO')\n    if not (GITHUB_BRANCH\
+          \ or '').strip():\n        missing.append('GITHUB_BRANCH')\n    if missing:\n\
+          \        return {\n            'status':      f'Error: missing env vars\
+          \ — {\", \".join(missing)}',\n            'new_sync_ts':  0,\n         \
+          \   'new_sync_utc': '',\n        }\n\n    now_unix = int(datetime.now(timezone.utc).timestamp())\n\
+          \    now_utc  = datetime.fromtimestamp(now_unix, tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')\n\
+          \n    state = {\n        'last_sync_ts':    now_unix,\n        'last_sync_utc':\
+          \   now_utc,\n        'total_apps':      total_apps,\n        'filtered_count':\
+          \ filtered_count,\n    }\n    content_b64 = base64.b64encode(\n        json.dumps(state,\
+          \ indent=2).encode('utf-8')\n    ).decode('utf-8')\n\n    github_headers\
+          \ = {\n        'Authorization':        f'Bearer {GITHUB_TOKEN.strip()}',\n\
+          \        'Accept':               'application/vnd.github+json',\n      \
+          \  'X-GitHub-Api-Version': '2022-11-28',\n    }\n    timeout = httpx.Timeout(connect=10.0,\
+          \ read=10.0, write=8.0, pool=5.0)\n    url     = (\n        f'https://api.github.com/repos/{GITHUB_OWNER.strip()}/{GITHUB_REPO.strip()}'\n\
+          \        f'/contents/dsl/.sync_state'\n    )\n    payload = {\n        'message':\
+          \ f'chore: update sync state ({now_utc})',\n        'content': content_b64,\n\
+          \        'branch':  GITHUB_BRANCH.strip(),\n    }\n    if sync_state_sha\
+          \ and sync_state_sha.strip():\n        payload['sha'] = sync_state_sha.strip()\n\
+          \n    try:\n        with httpx.Client(timeout=timeout, headers=github_headers)\
+          \ as client:\n            resp = client.put(url, json=payload)\n       \
+          \     resp.raise_for_status()\n            commit_sha = resp.json().get('commit',\
+          \ {}).get('sha', 'unknown')[:7]\n            return {\n                'status':\
+          \      f'OK: .sync_state updated (commit {commit_sha})',\n             \
+          \   'new_sync_ts':  now_unix,\n                'new_sync_utc': now_utc,\n\
+          \            }\n    except httpx.TimeoutException:\n        return {\n \
+          \           'status':      'Error: GitHub timeout writing .sync_state',\n\
+          \            'new_sync_ts':  0,\n            'new_sync_utc': '',\n     \
+          \   }\n    except Exception as e:\n        detail = f' | {e.response.text}'\
+          \ if hasattr(e, 'response') else ''\n        return {\n            'status':\
+          \      f'Error: {str(e)[:80]}{detail}',\n            'new_sync_ts':  0,\n\
+          \            'new_sync_utc': '',\n        }\n"
+        code_language: python3
+        desc: Writes dsl/.sync_state to GitHub after iteration completes. Records
+          current UTC timestamp as last_sync_ts so next run only processes apps edited
+          after this moment. Uses sync_state_sha from GET_ALL_APPS for correct GitHub
+          PUT (update vs create). Runs even on partial iteration completion (continue-on-error).
+          Delete .sync_state from GitHub to force a full re-sync on next run.
+        outputs:
+          new_sync_ts:
+            children: null
+            type: number
+          new_sync_utc:
+            children: null
+            type: string
+          status:
+            children: null
+            type: string
+        selected: false
+        title: UPDATE_SYNC_STATE
+        type: code
+        variables:
+        - value_selector:
+          - env
+          - GITHUB_TOKEN
+          value_type: string
+          variable: GITHUB_TOKEN
+        - value_selector:
+          - env
+          - GITHUB_OWNER
+          value_type: string
+          variable: GITHUB_OWNER
+        - value_selector:
+          - env
+          - GITHUB_REPO
+          value_type: string
+          variable: GITHUB_REPO
+        - value_selector:
+          - env
+          - GITHUB_BRANCH
+          value_type: string
+          variable: GITHUB_BRANCH
+        - value_selector:
+          - get_all_apps
+          - total_apps
+          value_type: number
+          variable: total_apps
+        - value_selector:
+          - get_all_apps
+          - filtered_count
+          value_type: number
+          variable: filtered_count
+        - value_selector:
+          - get_all_apps
+          - sync_state_sha
+          value_type: string
+          variable: sync_state_sha
+      height: 224
+      id: update_sync_state
+      position:
+        x: 1145.8333333333333
+        y: 300
+      positionAbsolute:
+        x: 1145.8333333333333
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - get_all_apps
+          - status
+          value_type: string
+          variable: FetchStatus
+        - value_selector:
+          - get_all_apps
+          - total_apps
+          value_type: number
+          variable: TotalApps
+        - value_selector:
+          - get_all_apps
+          - filtered_count
+          value_type: number
+          variable: FilteredCount
+        - value_selector:
+          - iter_node
+          - output
+          value_type: array[object]
+          variable: SyncResults
+        - value_selector:
+          - update_sync_state
+          - status
+          value_type: string
+          variable: StateUpdateStatus
+        - value_selector:
+          - update_sync_state
+          - new_sync_utc
+          value_type: string
+          variable: NewSyncTime
+        selected: false
+        title: End
+        type: end
+      height: 219
+      id: end_node
+      position:
+        x: 1445.8333333333335
+        y: 300
+      positionAbsolute:
+        x: 1445.8333333333335
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 243
+    - data:
+        desc: ''
+        isInIteration: true
+        selected: false
+        title: ''
+        type: iteration-start
+      draggable: false
+      height: 48
+      id: iter_nodestart0
+      parentId: iter_node
+      position:
+        x: 24
+        y: 68
+      positionAbsolute:
+        x: 654
+        y: 350
+      selectable: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom-iteration-start
+      width: 44
+      zIndex: 1002
+    viewport:
+      x: -72.05009540934952
+      y: -11.061791197444904
+      zoom: 0.7669396610438215
