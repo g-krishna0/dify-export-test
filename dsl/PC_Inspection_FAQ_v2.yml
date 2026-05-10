@@ -1,0 +1,586 @@
+app:
+  description: This workflow address user query related to PC inspection. It takes
+    in error and retrieve the instruction from 04_annual inspection file and also
+    provide solution related to FAQ. This workflow is design for D-11 use-case.
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: PC_Inspection_FAQ_v2
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: 1777870378982-source-1777870417080-target
+      source: '1777870378982'
+      sourceHandle: source
+      target: '1777870417080'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: knowledge-retrieval
+      id: 1777870417080-true-1777870568152-target
+      source: '1777870417080'
+      sourceHandle: 'true'
+      target: '1777870568152'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: 1777870568152-source-1777870635632-target
+      source: '1777870568152'
+      sourceHandle: source
+      target: '1777870635632'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: knowledge-retrieval
+      id: 1777870417080-false-1777871350853-target
+      source: '1777870417080'
+      sourceHandle: 'false'
+      target: '1777871350853'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: 1777871350853-source-1777873381510-target
+      source: '1777871350853'
+      sourceHandle: source
+      target: '1777873381510'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1777870635632-source-1777871329518-target
+      source: '1777870635632'
+      sourceHandle: source
+      target: '1777871329518'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1777873381510-source-1777873877290-target
+      source: '1777873381510'
+      sourceHandle: source
+      target: '1777873877290'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: 1777870417080-91c585a7-2ffd-43d0-9498-b909b3b978c0-1778051322029-target
+      source: '1777870417080'
+      sourceHandle: 91c585a7-2ffd-43d0-9498-b909b3b978c0
+      target: '1778051322029'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: 1778051322029-source-1778051518017-target
+      source: '1778051322029'
+      sourceHandle: source
+      target: '1778051518017'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: user_input
+          max_length: 1000
+          options: []
+          required: true
+          type: paragraph
+          variable: user_input
+        - label: is_follow_up
+          max_length: 48
+          options: []
+          required: true
+          type: text-input
+          variable: is_follow_up
+        - label: preferred_lang
+          max_length: 48
+          options: []
+          required: true
+          type: text-input
+          variable: preferred_lang
+        - label: error_history
+          max_length: 10000000
+          options: []
+          required: false
+          type: paragraph
+          variable: error_history
+      height: 168
+      id: '1777870378982'
+      position:
+        x: 64
+        y: 206
+      positionAbsolute:
+        x: 64
+        y: 206
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: not empty
+            id: 17d26753-41f8-41ea-b957-b227b7b34ebb
+            value: ''
+            varType: string
+            variable_selector:
+            - '1777870378982'
+            - user_input
+          - comparison_operator: is
+            id: f4e29674-4189-4b8b-86e7-321184c34fe8
+            value: 'NO'
+            varType: string
+            variable_selector:
+            - '1777870378982'
+            - is_follow_up
+          id: 'true'
+          logical_operator: and
+        - case_id: 91c585a7-2ffd-43d0-9498-b909b3b978c0
+          conditions:
+          - comparison_operator: is
+            id: 86e14117-6fca-48bf-8e71-96a09963ab65
+            value: Rectify Errors
+            varType: string
+            variable_selector:
+            - '1777870378982'
+            - user_input
+          - comparison_operator: is
+            id: 90b6478e-ae55-44c5-9750-1bd0521ad73f
+            value: エラーを修正する
+            varType: string
+            variable_selector:
+            - '1777870378982'
+            - user_input
+          id: 91c585a7-2ffd-43d0-9498-b909b3b978c0
+          logical_operator: or
+        desc: This node routes the user query to either LLM_error node or LLM_FAQ
+          node based on nature of query.
+        selected: false
+        title: Error Vs FAQ.
+        type: if-else
+      height: 286
+      id: '1777870417080'
+      position:
+        x: 413.3015448920304
+        y: 206
+      positionAbsolute:
+        x: 413.3015448920304
+        y: 206
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - qtEcYSr1aR9FY4d07YeAHxcceY0FgspBr9l6jPld0KqdimLWa6jPxrPp1ETD/+hU
+        desc: This KB stores 04_inspection data which contains error and corresponding
+          solutions.
+        metadata_filtering_mode: disabled
+        multiple_retrieval_config:
+          reranking_enable: true
+          reranking_mode: weighted_score
+          reranking_model:
+            model: ''
+            provider: ''
+          score_threshold: null
+          top_k: 1
+          weights:
+            keyword_setting:
+              keyword_weight: 0.3
+            vector_setting:
+              embedding_model_name: gemini-embedding-001
+              embedding_provider_name: langgenius/gemini/google
+              vector_weight: 0.7
+        query_variable_selector:
+        - '1777870378982'
+        - user_input
+        retrieval_mode: multiple
+        selected: false
+        title: KB_04_Inspection
+        type: knowledge-retrieval
+      height: 152
+      id: '1777870568152'
+      position:
+        x: 901.740779729105
+        y: 85.79180788874811
+      positionAbsolute:
+        x: 901.740779729105
+        y: 85.79180788874811
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1777870568152'
+          - result
+        desc: This node receives the user input as error and take the context from
+          the Error_kb  and response in professional tone.
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 73e53282-031c-44a4-9f48-ddc140686466
+          role: system
+          text: "You are a PC Inspection Support Specialist, your sole purpose is\
+            \ to provide technical solutions for PC Inspection errors based exclusively\
+            \ on the provided Solutions KB (Knowledge Base).\n\n# KB context : {{#context#}}\n\
+            \n## Guidelines:\n- Deliver clear, actionable, and professional solutions.\
+            \ Use numbered lists for multi-step instructions.\n- Strictly limited\
+            \ to PC Inspection topics based on context if available. Do not add any\
+            \ general information. Avoids any other topics and request the user to\
+            \ ask PC error related queries only.\n- Use only the provided context.\
+            \ Do not supplement with general technical knowledge, outside information,\
+            \ or assumptions or context.\n\n## Mandatory Response Templates *\n- For\
+            \ Non-PC Inspection Queries: > \"It looks like your query is non-PC Inspection.\
+            \ I am only authorized to assist with queries related to PC Inspection.\
+            \ Please let me know if you have a question regarding that process.\"\
+            \ \n- For Email/Drafting Requests:  > \"I am only authorized to assist\
+            \ with queries related to PC Inspection; I cannot draft mail for you.\
+            \ Thank you for using our services.\"\n\n## Always respond in the user's\
+            \ preferred language: {{#1777870378982.preferred_lang#}}{en: English,\
+            \ jp: 日本語}\n## Follow-up Requirement : Only when you have provided information\
+            \ from the Error History related to the instruction of errors, you must\
+            \ ask the user the following in their preferred language > Do you want\
+            \ to rectify the errors manually or draft an email for the client?"
+        - id: 177bb0aa-8358-4486-a779-fff3d963d333
+          role: user
+          text: '{{#1777870378982.user_input#}}'
+        selected: false
+        title: LLM_ERROR
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 166
+      id: '1777870635632'
+      position:
+        x: 1233.744204833893
+        y: 85.79180788874811
+      positionAbsolute:
+        x: 1233.744204833893
+        y: 85.79180788874811
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1777870635632'
+          - text
+          value_type: string
+          variable: text
+        selected: false
+        title: Display Error solution
+        type: end
+      height: 90
+      id: '1777871329518'
+      position:
+        x: 1566.6786216354672
+        y: 85.79180788874811
+      positionAbsolute:
+        x: 1566.6786216354672
+        y: 85.79180788874811
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - nFpQKtMt/Q6tV9+z77DfVK1myg5nM6FAuK93/ee9/4zEoQvEyTGDEB7VrGiJDblT
+        desc: This KB stores 07_FAQ data which contains Frequently Asked Questions
+          and corresponding solutions.
+        multiple_retrieval_config:
+          reranking_enable: true
+          reranking_mode: weighted_score
+          top_k: 4
+          weights:
+            keyword_setting:
+              keyword_weight: 0.3
+            vector_setting:
+              embedding_model_name: gemini-embedding-001
+              embedding_provider_name: langgenius/gemini/google
+              vector_weight: 0.7
+        query_variable_selector:
+        - '1777870378982'
+        - user_input
+        retrieval_mode: multiple
+        selected: true
+        title: KB_FAQ
+        type: knowledge-retrieval
+      height: 152
+      id: '1777871350853'
+      position:
+        x: 901.740779729105
+        y: 397.9199393011172
+      positionAbsolute:
+        x: 901.740779729105
+        y: 397.9199393011172
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1777871350853'
+          - result
+        desc: This node receives the user input as FAQ and take the context from the
+          FAQ-KB and response in professional tone.
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: 8073fb00-8cb6-4388-93be-2e5322582cdc
+          role: system
+          text: "You are a specialized PC Inspection Assistant. Your sole purpose\
+            \ is to provide clear, actionable, and professional solutions based strictly\
+            \ on provided PC Inspection FAQs context and error history by interacting\
+            \ with user.\n\n# context : {{#context#}}\n\n## Strict Operational Rules\n\
+            - Scope Restriction: Assist ONLY with PC Inspection topics and error-related\
+            \ queries. Do not provide general information or discuss any other topics.\n\
+            - Context Adherence: Use only the provided context. Do not add outside\
+            \ information or general technical knowledge. \n- Information Hierarchy:\
+            \ If FAQ context is unavailable, rely strictly on the Error History provided.\
+            \ Do not invent solutions.\n- Error Rectification : If user request for\
+            \ any error ratification and provide to add or modify the previous instruction\
+            \ do not stick to context, update and return the new updated instructions\
+            \ as per user's request.\n- Out-of-Scope Handling: If a query is unrelated\
+            \ to PC Inspection or errors, respond with:\n   > \"It looks like your\
+            \ query is non-PC Inspection. I am only authorized to assist with queries\
+            \ related to PC Inspection. Please let me know if you have a question\
+            \ regarding that process.\"\n- Mail Draft Restriction: If a user requests\
+            \ an email draft, respond with:\n   > \"I am only authorized to assist\
+            \ with queries related to PC Inspection; I cannot draft mail for you.\
+            \ Thank you for using our services.\"\n\n## Always respond in the user's\
+            \ preferred language: {{#1777870378982.preferred_lang#}}{en: English,\
+            \ jp: 日本語}\n## Follow-up Requirement : Only when you have provided information\
+            \ from the Error History related to the instruction of errors, you must\
+            \ ask the user the following in their preferred language > Do you want\
+            \ to rectify the errors manually or draft an email for the client?"
+        - id: abbdf325-98d0-4501-9c66-4633c64b9626
+          role: user
+          text: 'user input : {{#1777870378982.user_input#}}
+
+            error history : {{#1777870378982.error_history#}}
+
+            user preferred langauge : {{#1777870378982.preferred_lang#}}'
+        selected: false
+        title: LLM_FAQ
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 150
+      id: '1777873381510'
+      position:
+        x: 1251.2762908899995
+        y: 397.9199393011172
+      positionAbsolute:
+        x: 1251.2762908899995
+        y: 397.9199393011172
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1777873381510'
+          - text
+          value_type: string
+          variable: text
+        selected: false
+        title: Display FAQ output
+        type: end
+      height: 90
+      id: '1777873877290'
+      position:
+        x: 1603.7792210183318
+        y: 397.9199393011172
+      positionAbsolute:
+        x: 1603.7792210183318
+        y: 397.9199393011172
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "\ndef main(preferred_lang: str) -> dict:\n    if preferred_lang ==\
+          \ \"en\":\n        msg = \"To rectify errors, please provide the specific\
+          \ changes. \"\n    else:\n        msg = \"誤りを修正するには、具体的な変更内容をお知らせください。 \"\
+          \n    return {\n        \"text\": msg,\n    }\n"
+        code_language: python3
+        desc: This node request the user to provide specific changes they want to
+          make manually.
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: Rectify_Errors
+        type: code
+        variables:
+        - value_selector:
+          - '1777870378982'
+          - preferred_lang
+          value_type: string
+          variable: preferred_lang
+      height: 114
+      id: '1778051322029'
+      position:
+        x: 901.740779729105
+        y: 268.1037437674242
+      positionAbsolute:
+        x: 901.740779729105
+        y: 268.1037437674242
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1778051322029'
+          - result
+          value_type: string
+          variable: result
+        selected: false
+        title: Request error changes
+        type: end
+      height: 90
+      id: '1778051518017'
+      position:
+        x: 1210.335573149093
+        y: 268.1037437674242
+      positionAbsolute:
+        x: 1210.335573149093
+        y: 268.1037437674242
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -245.24725580997983
+      y: 180.82923107535797
+      zoom: 0.7419188565584102
