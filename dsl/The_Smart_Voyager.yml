@@ -1,0 +1,1569 @@
+app:
+  description: "The Smart Voyager provides full itinerary planning, cultural recommendations,\n\
+    dining suggestions, and nightlife guidance for \n20 supported cities (Europe only):\
+    \ Paris, Cannes, Monaco, Rome, Venice, Ravello, Positano, Barcelona, Madrid, Zurich,\
+    \ Geneva, Lisbon, Algarve, Amsterdam, Berlin, Budapest, Krakow, Warsaw, Prague,\
+    \ Tirana."
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: The Smart Voyager
+  use_icon_as_answer_icon: true
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables:
+  - description: Default value should be Null
+    id: d90b77bd-b584-4fe2-a3e4-b45b1d72d395
+    name: itinerary_plan_requested
+    selector:
+    - conversation
+    - itinerary_plan_requested
+    value: 'NO'
+    value_type: string
+  - description: ''
+    id: 3d04cdbe-686a-4219-ac4f-84dc8df1f067
+    name: travel_brief
+    selector:
+    - conversation
+    - travel_brief
+    value: 'NO'
+    value_type: string
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 50
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: 'Here we start our application:'
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions:
+    - TRIP PLANNER
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: template-transform
+        targetType: assigner
+      id: 1776760380341-source-1776761962098-target
+      selected: false
+      source: '1776760380341'
+      sourceHandle: source
+      target: '1776761962098'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: assigner
+        targetType: answer
+      id: 1776761962098-source-1776761989617-target
+      selected: false
+      source: '1776761962098'
+      sourceHandle: source
+      target: '1776761989617'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: 1776760181851-source-1776762103051-target
+      selected: false
+      source: '1776760181851'
+      sourceHandle: source
+      target: '1776762103051'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: tool
+      id: 1776762103051-true-1776760342714-target
+      selected: false
+      source: '1776762103051'
+      sourceHandle: 'true'
+      target: '1776760342714'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: tool
+      id: 1776762103051-true-1776760465127-target
+      selected: false
+      source: '1776762103051'
+      sourceHandle: 'true'
+      target: '1776760465127'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: if-else
+        targetType: tool
+      id: 1776762103051-true-1776760651416-target
+      selected: false
+      source: '1776762103051'
+      sourceHandle: 'true'
+      target: '1776760651416'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: question-classifier
+      id: 1776762103051-false-1776764769485-target
+      selected: false
+      source: '1776762103051'
+      sourceHandle: 'false'
+      target: '1776764769485'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: assigner
+      id: 1776764769485-1-1776764836973-target
+      selected: false
+      source: '1776764769485'
+      sourceHandle: '1'
+      target: '1776764836973'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: question-classifier
+        targetType: answer
+      id: 1776764769485-2-1776762425108-target
+      selected: false
+      source: '1776764769485'
+      sourceHandle: '2'
+      target: '1776762425108'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: answer
+      id: 1776836399615-source-1776762441668-target
+      selected: false
+      source: '1776836399615'
+      sourceHandle: source
+      target: '1776762441668'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: 1776760465127-source-1776845325503-target
+      selected: false
+      source: '1776760465127'
+      sourceHandle: source
+      target: '1776845325503'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: 1776760651416-source-1776845325503-target
+      selected: false
+      source: '1776760651416'
+      sourceHandle: source
+      target: '1776845325503'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: template-transform
+      id: 1776845325503-source-1776760380341-target
+      selected: false
+      source: '1776845325503'
+      sourceHandle: source
+      target: '1776760380341'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: 1776760342714-source-1776845325503-target
+      selected: false
+      source: '1776760342714'
+      sourceHandle: source
+      target: '1776845325503'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: assigner
+        targetType: tool
+      id: 1776764836973-source-1777023227151-target
+      source: '1776764836973'
+      sourceHandle: source
+      target: '1777023227151'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: code
+      id: 1777023227151-source-1776836399615-target
+      source: '1777023227151'
+      sourceHandle: source
+      target: '1776836399615'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: Start
+        type: start
+        variables:
+        - label: destination
+          max_length: 48
+          options: []
+          required: true
+          type: text-input
+          variable: destination
+        - label: source_city
+          max_length: 48
+          options: []
+          required: true
+          type: text-input
+          variable: source_city
+        - label: number_of_days
+          max_length: 48
+          options: []
+          required: true
+          type: number
+          variable: number_of_days
+        - allowed_file_extensions: []
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          default: Family
+          label: vibe
+          max_length: 5
+          options:
+          - Family
+          - Solo
+          - Culture
+          required: true
+          type: select
+          variable: vibe
+        - label: nationality
+          max_length: 48
+          options: []
+          required: true
+          type: text-input
+          variable: nationality
+      height: 194
+      id: '1776760181851'
+      position:
+        x: -278.8
+        y: 320.4
+      positionAbsolute:
+        x: -278.8
+        y: 320.4
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Destination (City)
+            ja_JP: Destination (City)
+            pt_BR: Destination (City)
+            zh_Hans: Destination (City)
+          llm_description: ''
+          max: null
+          min: null
+          name: destination
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Duration (Days)
+            ja_JP: Duration (Days)
+            pt_BR: Duration (Days)
+            zh_Hans: Duration (Days)
+          llm_description: ''
+          max: null
+          min: null
+          name: duration
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Vibe / Travel Style
+            ja_JP: Vibe / Travel Style
+            pt_BR: Vibe / Travel Style
+            zh_Hans: Vibe / Travel Style
+          llm_description: ''
+          max: null
+          min: null
+          name: vibe
+          options:
+          - icon: null
+            label:
+              en_US: Family
+              ja_JP: Family
+              pt_BR: Family
+              zh_Hans: Family
+            value: Family
+          - icon: null
+            label:
+              en_US: Kids
+              ja_JP: Kids
+              pt_BR: Kids
+              zh_Hans: Kids
+            value: Kids
+          - icon: null
+            label:
+              en_US: Luxury
+              ja_JP: Luxury
+              pt_BR: Luxury
+              zh_Hans: Luxury
+            value: Luxury
+          - icon: null
+            label:
+              en_US: Solo
+              ja_JP: Solo
+              pt_BR: Solo
+              zh_Hans: Solo
+            value: Solo
+          - icon: null
+            label:
+              en_US: Adventure
+              ja_JP: Adventure
+              pt_BR: Adventure
+              zh_Hans: Adventure
+            value: Adventure
+          - icon: null
+            label:
+              en_US: Cultural
+              ja_JP: Cultural
+              pt_BR: Cultural
+              zh_Hans: Cultural
+            value: Cultural
+          - icon: null
+            label:
+              en_US: Romantic
+              ja_JP: Romantic
+              pt_BR: Romantic
+              zh_Hans: Romantic
+            value: Romantic
+          - icon: null
+            label:
+              en_US: Culinary
+              ja_JP: Culinary
+              pt_BR: Culinary
+              zh_Hans: Culinary
+            value: Culinary
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: select
+        params:
+          destination: ''
+          duration: ''
+          vibe: ''
+        provider_id: b4f3fb46-bb2a-4513-ae85-a85979317cf5
+        provider_name: Smart Voyager — Experience Orchestrator
+        provider_type: workflow
+        selected: false
+        title: Smart Voyager — Experience Orchestrator
+        tool_configurations: {}
+        tool_description: Sub-Workflow A of The Smart Voyager platform. Accepts a
+          destination city, trip duration, and travel vibe as inputs. Runs three parallel
+          Knowledge Retrieval nodes (Culinary, History & Culture, Nightlife) and synthesizes
+          the results into a rich narrative travel experience response.
+        tool_label: Smart Voyager — Experience Orchestrator
+        tool_name: experience_wf
+        tool_node_version: '2'
+        tool_parameters:
+          destination:
+            type: mixed
+            value: '{{#1776760181851.destination#}}'
+          duration:
+            type: mixed
+            value: '{{#1776760181851.number_of_days#}}'
+          vibe:
+            type: constant
+            value: Family
+        type: tool
+      height: 54
+      id: '1776760342714'
+      position:
+        x: 384
+        y: 231.7166816078464
+      positionAbsolute:
+        x: 384
+        y: 231.7166816078464
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        selected: false
+        template: "## ✈️ Travel Experience\r\n\r\n{{ experience_text }}\r\n\r\n---\r\
+          \n\r\n## \U0001F6C2 Visa & Compliance\r\n\r\n{{ visa_text }}\r\n\r\n---\r\
+          \n\r\n## \U0001F9F3 Logistics & Cost\r\n\r\n\r\n\r\n {{ logistics_text }}\
+          \ \r\n\r\n"
+        title: Template
+        type: template-transform
+        variables:
+        - value_selector:
+          - '1776845325503'
+          - experience_result
+          value_type: string
+          variable: experience_text
+        - value_selector:
+          - '1776845325503'
+          - visa_result
+          value_type: string
+          variable: visa_text
+        - value_selector:
+          - '1776845325503'
+          - logistics_result
+          value_type: string
+          variable: logistics_text
+      height: 54
+      id: '1776760380341'
+      position:
+        x: 1115.2179340436976
+        y: 320.4
+      positionAbsolute:
+        x: 1115.2179340436976
+        y: 320.4
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Destination Country
+            ja_JP: Destination Country
+            pt_BR: Destination Country
+            zh_Hans: Destination Country
+          llm_description: ''
+          max: null
+          min: null
+          name: destination
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Traveller Nationality
+            ja_JP: Traveller Nationality
+            pt_BR: Traveller Nationality
+            zh_Hans: Traveller Nationality
+          llm_description: ''
+          max: null
+          min: null
+          name: nationality
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        params:
+          destination: ''
+          nationality: ''
+        provider_id: ec004236-76fb-413b-b115-641a79ea7c7c
+        provider_name: Smart Voyager — Visa & Compliance Engine
+        provider_type: workflow
+        selected: false
+        title: Smart Voyager — Visa & Compliance Engine
+        tool_configurations: {}
+        tool_description: Sub-Workflow B of The Smart Voyager platform. Accepts a
+          destination country and the traveller's nationality as inputs. Runs two
+          parallel Knowledge Retrieval nodes against the Immigration Rules DB and
+          the Health & Safety Advisories DB, then synthesizes a structured JSON compliance
+          checklist covering visa requirements, health precautions, and travel advisories.
+        tool_label: Smart Voyager — Visa & Compliance Engine
+        tool_name: visa_wf
+        tool_node_version: '2'
+        tool_parameters:
+          destination:
+            type: mixed
+            value: '{{#1776760181851.destination#}}'
+          nationality:
+            type: mixed
+            value: '{{#1776760181851.nationality#}}'
+        type: tool
+      height: 54
+      id: '1776760465127'
+      position:
+        x: 384
+        y: 358.23889386928215
+      positionAbsolute:
+        x: 384
+        y: 358.23889386928215
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Origin City / Airport
+            ja_JP: Origin City / Airport
+            pt_BR: Origin City / Airport
+            zh_Hans: Origin City / Airport
+          llm_description: ''
+          max: null
+          min: null
+          name: origin
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Destination City / Airport
+            ja_JP: Destination City / Airport
+            pt_BR: Destination City / Airport
+            zh_Hans: Destination City / Airport
+          llm_description: ''
+          max: null
+          min: null
+          name: destination
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Trip Duration (Days)
+            ja_JP: Trip Duration (Days)
+            pt_BR: Trip Duration (Days)
+            zh_Hans: Trip Duration (Days)
+          llm_description: ''
+          max: null
+          min: null
+          name: duration
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Travel Date (YYYY-MM-DD)
+            ja_JP: Travel Date (YYYY-MM-DD)
+            pt_BR: Travel Date (YYYY-MM-DD)
+            zh_Hans: Travel Date (YYYY-MM-DD)
+          llm_description: ''
+          max: null
+          min: null
+          name: travel_date
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Leg Type (flight / day_trip / return_flight)
+            ja_JP: Leg Type (flight / day_trip / return_flight)
+            pt_BR: Leg Type (flight / day_trip / return_flight)
+            zh_Hans: Leg Type (flight / day_trip / return_flight)
+          llm_description: ''
+          max: null
+          min: null
+          name: leg_type
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        params:
+          destination: ''
+          duration: ''
+          leg_type: ''
+          origin: ''
+          travel_date: ''
+        provider_id: 2bd1e4f2-c122-4909-af92-f89a0c003b09
+        provider_name: Smart Voyager — Logistics & Budget Engine
+        provider_type: workflow
+        selected: false
+        title: Smart Voyager — Logistics & Budget Engine
+        tool_configurations: {}
+        tool_description: Sub-Workflow C of The Smart Voyager platform. Accepts origin,
+          destination, and trip duration. Runs a Live Flight API tool (with a historic-averages
+          fallback), a Transit Advisor RAG node, and an Expense Calculator in parallel.
+          Feeds all results into a Currency Converter that formats the final Cost
+          & Transit JSON. A second fallback fires if the live exchange rate API times
+          out.
+        tool_label: Smart Voyager — Logistics & Budget Engine
+        tool_name: logistic_wf
+        tool_node_version: '2'
+        tool_parameters:
+          destination:
+            type: mixed
+            value: '{{#1776760181851.destination#}}'
+          duration:
+            type: variable
+            value:
+            - '1776760181851'
+            - number_of_days
+          leg_type:
+            type: mixed
+            value: null
+          nationality:
+            type: mixed
+            value: '{{#1776760181851.nationality#}}'
+          origin:
+            type: mixed
+            value: '{{#1776760181851.source_city#}}'
+          travel_date:
+            type: mixed
+            value: null
+        type: tool
+      height: 54
+      id: '1776760651416'
+      position:
+        x: 384
+        y: 512.9197644303239
+      positionAbsolute:
+        x: 384
+        y: 512.9197644303239
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        items:
+        - input_type: variable
+          operation: over-write
+          value:
+          - '1776760380341'
+          - output
+          variable_selector:
+          - conversation
+          - travel_brief
+          write_mode: over-write
+        selected: false
+        title: Variable Assigner
+        type: assigner
+        version: '2'
+      height: 86
+      id: '1776761962098'
+      position:
+        x: 1441.911391354191
+        y: 477.12055789722046
+      positionAbsolute:
+        x: 1441.911391354191
+        y: 477.12055789722046
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1776760380341.output#}}
+
+
+
+          ---
+
+
+          ✨ **Would you like me to generate a personalised day-by-day itinerary for
+          this trip?**
+
+
+          Just reply **Yes** and I''ll build one for you!'
+        desc: ''
+        selected: false
+        title: Answer
+        type: answer
+        variables: []
+      height: 168
+      id: '1776761989617'
+      position:
+        x: 1845.7626035203618
+        y: 397.6934573104934
+      positionAbsolute:
+        x: 1845.7626035203618
+        y: 397.6934573104934
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: b0336a7b-f1ca-47de-ba84-f1b50caca590
+            value: 'NO'
+            varType: string
+            variable_selector:
+            - conversation
+            - travel_brief
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: IF/ELSE
+        type: if-else
+      height: 126
+      id: '1776762103051'
+      position:
+        x: 25.200000000000045
+        y: 325.2
+      positionAbsolute:
+        x: 25.200000000000045
+        y: 325.2
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: No problem! Your complete travel brief is ready above. Feel free to
+          ask if you need anything else. ✈️
+        desc: ''
+        selected: false
+        title: Answer 2
+        type: answer
+        variables: []
+      height: 134
+      id: '1776762425108'
+      position:
+        x: 541.2127819688808
+        y: 872.8850869835023
+      positionAbsolute:
+        x: 541.2127819688808
+        y: 872.8850869835023
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1776836399615.result#}}'
+        desc: ''
+        selected: false
+        title: Answer 3
+        type: answer
+        variables: []
+      height: 104
+      id: '1776762441668'
+      position:
+        x: 1916.2498579589192
+        y: 788.9995823577497
+      positionAbsolute:
+        x: 1916.2498579589192
+        y: 788.9995823577497
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        classes:
+        - id: '1'
+          name: YES{{#sys.query#}}
+        - id: '2'
+          name: NO{{#sys.query#}}
+        desc: ''
+        instruction: Identify user input if its yes ot no{{#sys.query#}}
+        instructions: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-3-pro-preview
+          provider: langgenius/gemini/google
+        query_variable_selector:
+        - '1776760181851'
+        - sys.query
+        selected: false
+        title: Question Classifier
+        topics: []
+        type: question-classifier
+        vision:
+          enabled: false
+      height: 176
+      id: '1776764769485'
+      position:
+        x: 137.70465479303653
+        y: 689.9853890526515
+      positionAbsolute:
+        x: 137.70465479303653
+        y: 689.9853890526515
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        items:
+        - input_type: variable
+          operation: over-write
+          value:
+          - '1776764769485'
+          - class_name
+          variable_selector:
+          - conversation
+          - itinerary_plan_requested
+          write_mode: over-write
+        selected: false
+        title: Variable Assigner 2
+        type: assigner
+        version: '2'
+      height: 86
+      id: '1776764836973'
+      position:
+        x: 541.2127819688808
+        y: 689.9853890526515
+      positionAbsolute:
+        x: 541.2127819688808
+        y: 689.9853890526515
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(itinerary_text: str) -> dict:\n    data = json.loads(itinerary_text)\n\
+          \    markdown = data[\"itinerary_markdown\"]\n    \n    legs = json.loads(data[\"\
+          city_legs\"])\n    \n    legs_md = \"\\n\\n---\\n\\n## ✈️ Flight Plan\\\
+          n\\n\"\n    for leg in legs:\n        if leg[\"leg_type\"] == \"flight\"\
+          :\n            emoji = \"\U0001F6EB\"\n            label = \"Outbound Flight\"\
+          \n        elif leg[\"leg_type\"] == \"return_flight\":\n            emoji\
+          \ = \"\U0001F6EC\"\n            label = \"Return Flight\"\n        else:\n\
+          \            emoji = \"✈️\"\n            label = \"Flight\"\n        \n\
+          \        city_country = leg[\"city_country\"] if leg[\"city_country\"] else\
+          \ \"N/A\"\n        nights = leg[\"nights\"]\n        transit_mode = leg[\"\
+          transit_mode\"].capitalize()\n        transit_cost = f\"${leg['transit_cost_usd']}\"\
+          \ if leg[\"transit_cost_usd\"] == 0 else f\"${leg['transit_cost_usd']} USD\"\
+          \n        \n        legs_md += f\"{emoji} **{label}: {leg['from']} → {leg['to']}**\\\
+          n\"\n        legs_md += f\"- \U0001F30D City/Country: {city_country}\\n\"\
+          \n        legs_md += f\"- \U0001F319 Nights: {nights}\\n\"\n        legs_md\
+          \ += f\"- \U0001F68C Transit Mode: {transit_mode}\\n\"\n        legs_md\
+          \ += f\"- \U0001F4B0 Transit Cost: {transit_cost}\\n\\n\"\n    \n    result\
+          \ = markdown + legs_md\n    return {\"result\": result}"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: Code
+        type: code
+        variables:
+        - value_selector:
+          - '1777023227151'
+          - text
+          value_type: string
+          variable: itinerary_text
+      height: 54
+      id: '1776836399615'
+      position:
+        x: 1359.0293776488948
+        y: 934.0981716639285
+      positionAbsolute:
+        x: 1359.0293776488948
+        y: 934.0981716639285
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(logistics_text: str, visa_text: str, experience_text:\
+          \ str) -> dict:\n\n    # ─────────────────────────────────────────\n   \
+          \ # 1. EXPERIENCE ORCHESTRATOR\n    # ─────────────────────────────────────────\n\
+          \    try:\n        exp_data = json.loads(experience_text)\n\n        experience_md\
+          \ = \"\"\n\n        known_fields = [\n            'narrative_response',\
+          \ 'narrative', 'response',\n            'experience', 'content', 'text',\
+          \ 'output', 'result'\n        ]\n\n        for field in known_fields:\n\
+          \            if exp_data.get(field):\n                experience_md = exp_data[field]\n\
+          \                break\n\n        if not experience_md:\n            for\
+          \ key, value in exp_data.items():\n                if isinstance(value,\
+          \ str) and len(value) > 50:\n                    experience_md = value\n\
+          \                    break\n\n        if not experience_md:\n          \
+          \  experience_md = \"No experience data available.\"\n\n    except Exception\
+          \ as e:\n        experience_md = f\"Error parsing experience data: {str(e)}\"\
+          \n\n    # ─────────────────────────────────────────\n    # 2. VISA & COMPLIANCE\n\
+          \    # ─────────────────────────────────────────\n    try:\n        visa_outer\
+          \ = json.loads(visa_text)\n        compliance_data = json.loads(visa_outer[\"\
+          compliance_json\"])\n\n        visa_md = \"## Visa & Compliance\\n\\n\"\n\
+          \n        destination = compliance_data.get('destination') or compliance_data.get('country')\
+          \ or compliance_data.get('to') or 'N/A'\n        nationality = compliance_data.get('nationality')\
+          \ or compliance_data.get('passport') or 'N/A'\n        overall_risk = compliance_data.get('overall_risk')\
+          \ or compliance_data.get('risk') or 'N/A'\n\n        visa_md += f\"**Destination:**\
+          \ {destination}\\n\"\n        visa_md += f\"**Nationality:** {nationality}\\\
+          n\"\n        visa_md += f\"**Overall Risk:** {overall_risk.replace('_',\
+          \ ' ').title()}\\n\\n\"\n\n        visa = compliance_data.get('visa') or\
+          \ compliance_data.get('visa_info') or {}\n        if visa:\n           \
+          \ visa_md += \"### Visa Requirements\\n\\n\"\n            friendly_visa\
+          \ = {\n                \"requirement\": \"Visa Type\",\n               \
+          \ \"duration_days\": \"Maximum Stay (Days)\",\n                \"notes\"\
+          : \"Details\",\n                \"type\": \"Visa Type\",\n             \
+          \   \"cost\": \"Visa Cost\",\n                \"processing_time\": \"Processing\
+          \ Time\",\n                \"apply_at\": \"Apply At\",\n               \
+          \ \"validity\": \"Validity\",\n            }\n            for key, value\
+          \ in visa.items():\n                if value is None or value == \"\" or\
+          \ value == []:\n                    continue\n                label = friendly_visa.get(key,\
+          \ key.replace(\"_\", \" \").title())\n                if isinstance(value,\
+          \ list):\n                    visa_md += f\"- **{label}:**\\n\"\n      \
+          \              for item in value:\n                        visa_md += f\"\
+          \  - {item}\\n\"\n                else:\n                    display = str(value).replace('_',\
+          \ ' ').title() if key == 'requirement' else value\n                    visa_md\
+          \ += f\"- **{label}:** {display}\\n\"\n            visa_md += \"\\n\"\n\n\
+          \        health = compliance_data.get('health') or compliance_data.get('health_info')\
+          \ or {}\n        if health:\n            visa_md += \"### Health & Safety\\\
+          n\\n\"\n            friendly_health = {\n                \"advisory_level\"\
+          : \"Advisory Level\",\n                \"required_vaccinations\": \"Required\
+          \ Vaccinations\",\n                \"recommended_vaccinations\": \"Recommended\
+          \ Vaccinations\",\n                \"health_notes\": \"Health Notes\",\n\
+          \                \"emergency_number\": \"Emergency Number\",\n         \
+          \   }\n            for key, value in health.items():\n                if\
+          \ value is None or value == \"\" or value == []:\n                    continue\n\
+          \                label = friendly_health.get(key, key.replace(\"_\", \"\
+          \ \").title())\n                if isinstance(value, list):\n          \
+          \          visa_md += f\"- **{label}:**\\n\"\n                    for item\
+          \ in value:\n                        visa_md += f\"  - {item}\\n\"\n   \
+          \             else:\n                    if key == \"advisory_level\":\n\
+          \                        value = value.replace(\"_\", \" \").title()\n \
+          \                   visa_md += f\"- **{label}:** {value}\\n\"\n        \
+          \    visa_md += \"\\n\"\n\n        checklist = (\n            compliance_data.get('action_checklist')\
+          \ or\n            compliance_data.get('checklist') or\n            compliance_data.get('actions')\
+          \ or []\n        )\n        if checklist:\n            visa_md += \"###\
+          \ Action Checklist\\n\\n\"\n            for item in checklist:\n       \
+          \         visa_md += f\"- {item}\\n\"\n            visa_md += \"\\n\"\n\n\
+          \        handled_keys = {\n            'destination', 'nationality', 'overall_risk',\
+          \ 'risk', 'country', 'to',\n            'passport', 'visa', 'visa_info',\
+          \ 'health', 'health_info',\n            'action_checklist', 'checklist',\
+          \ 'actions'\n        }\n        extras = {k: v for k, v in compliance_data.items()\
+          \ if k not in handled_keys and v}\n        if extras:\n            visa_md\
+          \ += \"### Additional Information\\n\\n\"\n            for key, value in\
+          \ extras.items():\n                label = key.replace(\"_\", \" \").title()\n\
+          \                if isinstance(value, list):\n                    visa_md\
+          \ += f\"- **{label}:**\\n\"\n                    for item in value:\n  \
+          \                      visa_md += f\"  - {item}\\n\"\n                elif\
+          \ isinstance(value, dict):\n                    visa_md += f\"**{label}:**\\\
+          n\"\n                    for k, v in value.items():\n                  \
+          \      if v:\n                            visa_md += f\"- {k.replace('_',\
+          \ ' ').title()}: {v}\\n\"\n                else:\n                    visa_md\
+          \ += f\"- **{label}:** {value}\\n\"\n\n    except Exception as e:\n    \
+          \    visa_md = f\"Error parsing visa data: {str(e)}\"\n\n    # ─────────────────────────────────────────\n\
+          \    # 3. LOGISTICS & COST\n    # ─────────────────────────────────────────\n\
+          \    try:\n        logistics_outer = json.loads(logistics_text)\n      \
+          \  cost_data = json.loads(logistics_outer[\"cost_json\"])\n        costs\
+          \ = cost_data.get(\"costs\", {})\n\n        logistics_md = \"## Logistics\
+          \ & Cost\\n\\n\"\n\n        origin = cost_data.get('origin') or cost_data.get('from')\
+          \ or 'N/A'\n        destination_l = cost_data.get('destination') or cost_data.get('to')\
+          \ or 'N/A'\n        duration = cost_data.get('duration_days') or cost_data.get('duration')\
+          \ or 'N/A'\n\n        logistics_md += f\"**Route:** {str(origin).title()}\
+          \ to {str(destination_l).title()}\\n\"\n        logistics_md += f\"**Duration:**\
+          \ {duration} day(s)\\n\\n\"\n\n        if costs:\n            logistics_md\
+          \ += \"### Cost Breakdown\\n\\n\"\n            friendly_costs = {\n    \
+          \            \"flight_usd\": \"Flight Cost (USD)\",\n                \"\
+          flight\": \"Flight Cost\",\n                \"airline\": \"Airline\",\n\
+          \                \"flight_data_source\": \"Flight Data Source\",\n     \
+          \           \"daily_living_usd\": \"Daily Living Cost (USD)\",\n       \
+          \         \"daily_living\": \"Daily Living Cost\",\n                \"total_living_usd\"\
+          : \"Total Living Cost (USD)\",\n                \"total_living\": \"Total\
+          \ Living Cost\",\n                \"total_usd\": \"Total Cost (USD)\",\n\
+          \                \"total\": \"Total Cost\",\n                \"local_currency\"\
+          : \"Local Currency\",\n                \"dest_currency\": \"Destination\
+          \ Currency\",\n                \"source_currency\": \"Source Currency\"\
+          ,\n                \"fx_rate_usd_to_local\": \"Exchange Rate (USD to Local)\"\
+          ,\n                \"fx_rate_dest_to_source\": \"Exchange Rate (Dest to\
+          \ Source)\",\n                \"total_local_currency\": \"Total in Local\
+          \ Currency\",\n                \"total_source\": \"Total in Source Currency\"\
+          ,\n                \"usd_rate_used\": \"USD Rate Used\",\n             \
+          \   \"exchange_rate_source\": \"Exchange Rate Source\",\n              \
+          \  \"flight_source\": \"Flight Cost (Source Currency)\",\n             \
+          \   \"daily_living_source\": \"Daily Living (Source Currency)\",\n     \
+          \           \"total_living_source\": \"Total Living (Source Currency)\"\
+          ,\n            }\n            for key, value in costs.items():\n       \
+          \         if value is None:\n                    continue\n            \
+          \    label = friendly_costs.get(key, key.replace(\"_\", \" \").title())\n\
+          \                logistics_md += f\"- **{label}:** {value}\\n\"\n      \
+          \      logistics_md += \"\\n\"\n\n        transit_list = cost_data.get(\"\
+          transit_summary\", [])\n        if transit_list:\n            logistics_md\
+          \ += \"### Transit Guide\\n\\n\"\n            for t in transit_list:\n \
+          \               content = t.get(\"content\", \"\")\n                if content:\n\
+          \                    parts = {}\n                    for p in content.split(\"\
+          ;\"):\n                        if \": \" in p:\n                       \
+          \     key, _, value = p.partition(\": \")\n                            parts[key.strip()]\
+          \ = value.strip()\n                    for key, value in parts.items():\n\
+          \                        label = key.replace(\"_\", \" \").title()\n   \
+          \                     logistics_md += f\"- **{label}:** {value}\\n\"\n \
+          \                   logistics_md += \"\\n\"\n\n                meta = t.get(\"\
+          metadata\", {})\n                doc_meta = meta.get(\"doc_metadata\", {})\n\
+          \                for key, value in doc_meta.items():\n                 \
+          \   if value and key not in [\"language\", \"document_type\", \"tags\"]:\n\
+          \                        label = key.replace(\"_\", \" \").title()\n   \
+          \                     logistics_md += f\"- **{label}:** {value}\\n\"\n \
+          \               logistics_md += \"\\n\"\n\n        budget_note = cost_data.get(\"\
+          budget_note\") or cost_data.get(\"note\") or \"\"\n        if budget_note:\n\
+          \            logistics_md += f\"**Note:** {budget_note}\\n\"\n\n    except\
+          \ Exception as e:\n        logistics_md = f\"Error parsing logistics data:\
+          \ {str(e)}\"\n\n    # ─────────────────────────────────────────\n    # RETURN\
+          \ ALL THREE OUTPUTS\n    # ─────────────────────────────────────────\n \
+          \   return {\n        \"experience_result\": experience_md,\n        \"\
+          visa_result\": visa_md,\n        \"logistics_result\": logistics_md\n  \
+          \  }"
+        code_language: python3
+        desc: ''
+        outputs:
+          experience_result:
+            children: null
+            type: string
+          logistics_result:
+            children: null
+            type: string
+          visa_result:
+            children: null
+            type: string
+        selected: false
+        title: 'Code '
+        type: code
+        variables:
+        - value_selector:
+          - '1776760651416'
+          - text
+          value_type: string
+          variable: logistics_text
+        - value_selector:
+          - '1776760465127'
+          - text
+          value_type: string
+          variable: visa_text
+        - value_selector:
+          - '1776760342714'
+          - text
+          value_type: string
+          variable: experience_text
+      height: 54
+      id: '1776845325503'
+      position:
+        x: 758.201328871062
+        y: 305.8191631541692
+      positionAbsolute:
+        x: 758.201328871062
+        y: 305.8191631541692
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: true
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Destination (City)
+            ja_JP: Destination (City)
+            pt_BR: Destination (City)
+            zh_Hans: Destination (City)
+          llm_description: ''
+          max: null
+          min: null
+          name: destination
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Duration (Days)
+            ja_JP: Duration (Days)
+            pt_BR: Duration (Days)
+            zh_Hans: Duration (Days)
+          llm_description: ''
+          max: null
+          min: null
+          name: num_days
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Travel Profile
+            ja_JP: Travel Profile
+            pt_BR: Travel Profile
+            zh_Hans: Travel Profile
+          llm_description: ''
+          max: null
+          min: null
+          name: profile
+          options:
+          - icon: null
+            label:
+              en_US: Family
+              ja_JP: Family
+              pt_BR: Family
+              zh_Hans: Family
+            value: Family
+          - icon: null
+            label:
+              en_US: Kids
+              ja_JP: Kids
+              pt_BR: Kids
+              zh_Hans: Kids
+            value: Kids
+          - icon: null
+            label:
+              en_US: Luxury
+              ja_JP: Luxury
+              pt_BR: Luxury
+              zh_Hans: Luxury
+            value: Luxury
+          - icon: null
+            label:
+              en_US: Solo
+              ja_JP: Solo
+              pt_BR: Solo
+              zh_Hans: Solo
+            value: Solo
+          - icon: null
+            label:
+              en_US: Adventure
+              ja_JP: Adventure
+              pt_BR: Adventure
+              zh_Hans: Adventure
+            value: Adventure
+          - icon: null
+            label:
+              en_US: Cultural
+              ja_JP: Cultural
+              pt_BR: Cultural
+              zh_Hans: Cultural
+            value: Cultural
+          - icon: null
+            label:
+              en_US: Romantic
+              ja_JP: Romantic
+              pt_BR: Romantic
+              zh_Hans: Romantic
+            value: Romantic
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: select
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Arrival Time
+            ja_JP: Arrival Time
+            pt_BR: Arrival Time
+            zh_Hans: Arrival Time
+          llm_description: ''
+          max: null
+          min: null
+          name: arrival_time
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Departure Time
+            ja_JP: Departure Time
+            pt_BR: Departure Time
+            zh_Hans: Departure Time
+          llm_description: ''
+          max: null
+          min: null
+          name: departure_time
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          label:
+            en_US: Origin City (Departure Airport)
+            ja_JP: Origin City (Departure Airport)
+            pt_BR: Origin City (Departure Airport)
+            zh_Hans: Origin City (Departure Airport)
+          llm_description: ''
+          max: null
+          min: null
+          name: origin
+          options: []
+          placeholder:
+            en_US: ''
+            ja_JP: ''
+            pt_BR: ''
+            zh_Hans: ''
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        params:
+          arrival_time: ''
+          departure_time: ''
+          destination: ''
+          num_days: ''
+          origin: ''
+          profile: ''
+        provider_id: 5c858581-3e53-4179-a52b-c4f5a7ad4428
+        provider_name: Smart Voyager — Itinerary Orchestrator
+        provider_type: workflow
+        selected: false
+        title: Smart Voyager — Itinerary Orchestrator
+        tool_configurations: {}
+        tool_description: Sub-Workflow D of The Smart Voyager platform. Generates
+          a detailed, day-by-day  itinerary with Morning/Afternoon/Evening/Night slots.
+          Maps landmarks to  dining based on proximity and travel profile (Family,
+          Kids, Solo, etc.).
+        tool_label: Smart Voyager — Itinerary Orchestrator
+        tool_name: Itinerary_wf
+        tool_node_version: '2'
+        tool_parameters:
+          arrival_time:
+            type: mixed
+            value: ''
+          departure_time:
+            type: mixed
+            value: null
+          destination:
+            type: mixed
+            value: '{{#1776760181851.destination#}}'
+          num_days:
+            type: variable
+            value:
+            - '1776760181851'
+            - number_of_days
+          origin:
+            type: mixed
+            value: '{{#1776760181851.source_city#}}'
+          profile:
+            type: constant
+            value: Family
+        type: tool
+      height: 54
+      id: '1777023227151'
+      position:
+        x: 880.7500823736254
+        y: 852.2178276443044
+      positionAbsolute:
+        x: 880.7500823736254
+        y: 852.2178276443044
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 256.00242377633896
+      y: 1.4709272933598356
+      zoom: 0.5314703576700767
