@@ -1,0 +1,262 @@
+app:
+  description: Email gen
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: Email_Gen(WF)
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/gemini:0.7.4@5faf411e694e0da130a337347a625a3812b1b7502a0183382d66d92c841bf05a
+kind: app
+version: 0.3.1
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: 1776666492956-source-1777926876649-target
+      source: '1776666492956'
+      sourceHandle: source
+      target: '1777926876649'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: 1777926876649-source-1776671783479-target
+      source: '1777926876649'
+      sourceHandle: source
+      target: '1776671783479'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: The entry point that accepts either raw string input or document uploads
+        selected: false
+        title: Input_Collector
+        type: start
+        variables:
+        - label: preferred_lang
+          max_length: 48
+          options: []
+          required: true
+          type: text-input
+          variable: prefered_lang
+        - label: error
+          max_length: 500
+          options: []
+          required: true
+          type: paragraph
+          variable: error
+        - label: Submission_Date
+          max_length: 48
+          options: []
+          required: true
+          type: text-input
+          variable: Submission_Date
+        - label: instructions
+          max_length: 500000
+          options: []
+          required: true
+          type: paragraph
+          variable: instructions
+        - label: user_input
+          max_length: 1000
+          options: []
+          required: false
+          type: paragraph
+          variable: user_input
+        - label: chunk_size
+          max_length: 48
+          options: []
+          required: false
+          type: number
+          variable: chunk_size
+        - label: overlap_size
+          max_length: 48
+          options: []
+          required: false
+          type: number
+          variable: overlap_size
+      height: 289
+      id: '1776666492956'
+      position:
+        x: 187.18288080248033
+        y: 354.9826806119898
+      positionAbsolute:
+        x: 187.18288080248033
+        y: 354.9826806119898
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '1777926876649'
+          - text
+          value_type: string
+          variable: result
+        selected: false
+        title: End 2
+        type: end
+      height: 90
+      id: '1776671783479'
+      position:
+        x: 884.6591753074217
+        y: 354.9826806119898
+      positionAbsolute:
+        x: 884.6591753074217
+        y: 354.9826806119898
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1776666492956'
+          - instructions
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: gemini-2.5-pro
+          provider: langgenius/gemini/google
+        prompt_template:
+        - id: cdbf28f6-9862-4e35-a633-7c98753c31c1
+          role: system
+          text: "Role: You are an expert Email Specialist. Your task is to generate\
+            \ professional, clean email drafts tailored for direct copy-pasting into\
+            \ Outlook.\nTask: Draft a clear, professional email based on the provided\
+            \ JSON or raw text input.\nConstraints for Outlook Copy-Paste (Strict):\n\
+            \nVertical Spacing (CRITICAL): Do not bunch the Subject, To, and Salutation\
+            \ lines together. Use a double carriage return (two empty lines)\n\n between:\
+            \ \nNote:\nThe Subject line and the \"To:\" line.\n\nThe \"To:\" line\
+            \ and the \"Hello [user_name]\" line.\n\nThe Salutation and the opening\
+            \ paragraph.\n\nFormatting: Use Bold for labels like Summary of Findings:\
+            \ and Required Actions & Instructions.\n\n\nData Integration: Extract\
+            \ and fill [Form_ID], [user_name], and [Coordinator_Email] from the source\
+            \ data.\n\nAction List: Convert the technical steps into a clean, bulleted\
+            \ list. Use * or • for bullets.\n\nRequired Output Template: Subject:\
+            \ Action Required: Annual PC Inspection Findings | [Form_ID]\n\nTo: [Coordinator_Email]\n\
+            \nHello [user_name],\n\nThank you for submitting [Form_ID] for the annual\
+            \ PC inspection for your workstation. This email is regarding your submission\
+            \ \n\n[Form_ID] dated [Submission Date].\n\nUpon review of your submission,\
+            \ the following discrepancies were identified:\n\nSummary of Findings:\
+            \ [Insert Error Message]\n\nRequired Actions & Instructions\n\nTo ensure\
+            \ compliance and system health, please complete the following steps:\n\
+            \n[Step 1]\n\n[Step 2]\n\nThanks & Regards,\n[ORG_NAME | XXX | XXX]\n\n\
+            \nfor english:\n<englisg version>\n\nSubject: Action Required: Annual\
+            \ PC Inspection Findings | [Form_ID]\nTo: {Coordinator_Email}\nHello {user_name},\n\
+            Thank you for submitting {Form_ID} for the annual PC inspection for your\
+            \ workstation. This email is regarding your submission [Form_ID] dated\
+            \ [Submission Date].\nUpon review of your submission, the following discrepancies\
+            \ were identified:\nSummary of Findings: [LLM Summarization] OR MENTION \
+            \ [ERROR]\nRequired Actions & Instructions\nTo ensure compliance and system\
+            \ health, please complete the following steps:\n{LLM_Action_List}\n\n\
+            Thanks & Regards\n[ORG_NAME | XXX  | XXX]\n\n\nfor japanese use the below:\n\
+            \n<Japanese Version>\n\n\n件名：【要対応】PC年次点検に関する指摘事項｜[Form_ID]\n\n宛先：{Coordinator_Email}\n\
+            \n本文：{user_name} 様\n\nPC年次点検に関する提出資料をご提出いただきありがとうございます。\n\n本メールは、[Submission\
+            \ Date] にご提出いただいた [Form_ID] についてのご連絡です。\n\n提出内容を確認した結果、以下の不備が確認されました。\n\
+            \n【不備内容】\n[LLM Summarization]\nまたは\n[ERROR]\n\n【対応依頼・手順】\n機密情報管理およびPC利用環境の適正化のため、以下の対応をお願いいたします。\n\
+            \n{LLM_Action_List}\n\n対応完了後、必要に応じて修正済みの提出資料を再提出してください。\n\n以上、よろしくお願いいたします。\n\
+            \n[ORG_NAME | XXX | XXX]\n"
+        - id: 3e1904df-1715-49ba-acc0-9c8b05a4660b
+          role: user
+          text: 'user data:
+
+
+            user_input : {{#1776666492956.user_input#}}
+
+            Error : {{#1776666492956.error#}}
+
+            LLM_Action_List: {{#1776666492956.instructions#}}
+
+            preferred_language : {{#1776666492956.prefered_lang#}} {en:english, jp:
+            japanese}
+
+            Form_ID : Form_ID leave as it is
+
+            Submission Date :  {{#1776666492956.Submission_Date#}}
+
+            ORG_NAME : ORG_NAME leave as it is
+
+            [Coordinator_Email]: abc@org_name.com
+
+            '
+        selected: true
+        title: Email Gen
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 89
+      id: '1777926876649'
+      position:
+        x: 538.7136460169303
+        y: 354.9826806119898
+      positionAbsolute:
+        x: 538.7136460169303
+        y: 354.9826806119898
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 29.10252239842232
+      y: 124.90986975299958
+      zoom: 0.5570919273461367
